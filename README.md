@@ -17,8 +17,6 @@ Imagina una solución que implemente una de las siguientes estrategias de ejempl
 
 * Que permita a los semáforos coordinar sus tiempos y, así, reducir la congestión de un cruce. O, quizás, indicar en qué momento un vehículo va a cruzar una intersección y que de esta forma, el semáforo puede determinar el momento y duración de la luz verde.
 
-![Simulación del tráfico] (UK_Roundabout_8_Cars.gif)
-
 # Profesores Titulares
 * Octavio Navarro Hinojosa
 * Gilberto Echeverría Furió
