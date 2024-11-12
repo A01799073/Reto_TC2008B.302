@@ -1,29 +1,129 @@
-# Reto_TC2008B.302
-# Descripción reto
-Movilidad Urbana
+# Simulador de Movilidad Urbana - TC2008B.302
 
-Situación problema:
-El reto consiste en proponer una solución al problema de movilidad urbana en México, mediante un enfoque que reduzca la congestión vehicular al simular de manera gráfica el tráfico, representando la salida de un sistema multi agentes.
+## 📋 Descripción del Proyecto
 
-Imagina una solución que implemente una de las siguientes estrategias de ejemplo:
+Sistema de simulación multiagente enfocado en resolver problemas de movilidad urbana en México. El proyecto implementa estrategias para reducir la congestión vehicular mediante:
 
-* Controlar y asignar los espacios de estacionamiento disponible en una zona de la ciudad, evitando así que los autos estén dando vueltas para encontrar estacionamiento.
+- Optimización de rutas
+- Control inteligente de semáforos
+- Análisis de patrones de tráfico
+- Visualización en tiempo real
 
-* Compartir tu vehículo con otras personas. Aumentando la ocupación de los vehículos, reduciría el número de vehículos en las calles.
+## 👥 Equipo del Proyecto
 
-* Tomar las rutas menos congestionadas. Quizás no más las cortas, pero las rutas con menos tráfico. 
+### Profesores Titulares
 
-* Más movilidad, menos consumo, menos contaminación.
+- Octavio Navarro Hinojosa
+- Gilberto Echeverría Furió
 
-* Que permita a los semáforos coordinar sus tiempos y, así, reducir la congestión de un cruce. O, quizás, indicar en qué momento un vehículo va a cruzar una intersección y que de esta forma, el semáforo puede determinar el momento y duración de la luz verde.
+### Estudiantes Desarrolladores
 
-![UK Roundabout Example](UK_Roundabout_8_Cars.gif)
+- Emilio Ramírez Mascarúa
+- Kenia Esmeralda Ramos Javier - A01799073
 
-# Profesores Titulares
-* Octavio Navarro Hinojosa
-* Gilberto Echeverría Furió
+## 🚀 Funcionalidades
 
-# Integrantes
-Emilio Ramírez Mascarúa-
+### 1. Sistema Base
 
-Kenia Esmeralda Ramos Javier - A01799073
+- Grid 2D del ambiente urbano
+- Agentes vehiculares básicos
+- Sistema de visualización
+- Métricas fundamentales
+
+### 2. Sistema de Tráfico
+
+- Red de calles y direcciones
+- Control de semáforos
+- Gestión de velocidades
+- Análisis de densidad
+
+### 3. Sistema de Interacción
+
+- Detección de colisiones
+- Comportamiento vehicular realista
+- Gestión de intersecciones
+- Métricas de congestión
+
+### 4. Sistema de Navegación
+
+- Algoritmos de pathfinding
+- Optimización de rutas
+- Análisis de tiempos
+- Visualización de trayectorias
+
+## 🛠️ Tecnologías y Herramientas
+
+### Desarrollo
+
+- Mesa (Simulación)
+- Python (Backend)
+- WebGl (Visualización)
+
+### Estructura de Directorios
+
+```
+
+proyecto/
+├── src/
+│   ├── agents/
+│   ├── model/
+│   ├── visualization/
+│   └── utils/
+├── tests/
+├── docs/
+└── assets/
+
+```
+
+## ⏱️ Plan de Desarrollo
+
+### Fase 1: Fundamentos
+
+- Implementación del modelo base
+- Configuración del ambiente
+- Visualización básica
+
+### Fase 2: Comportamientos
+
+- Sistema de calles
+- Implementación de semáforos
+- Comportamientos básicos
+
+### Fase 3: Interacciones
+
+- Sistema de colisiones
+- Comportamientos complejos
+- Métricas avanzadas
+
+### Fase 4: Rutas
+
+- Sistema de destinos
+- Pathfinding
+- Optimización de rutas
+
+### Fase 5: Optimización
+
+- Escenarios de prueba
+- Ajustes de rendimiento
+- Recolección de datos
+
+### Fase 6: Visualización
+
+- Implementación 3D
+- UI/UX
+- Optimización final
+
+## 📊 Métricas y Análisis
+
+- Densidad de tráfico
+- Tiempos de viaje
+- Niveles de congestión
+- Eficiencia de rutas
+
+## 🔧 Instalación y Uso
+
+[Instrucciones pendientes]
+
+## 📝 Licencia
+
+[Pendiente de especificar]
