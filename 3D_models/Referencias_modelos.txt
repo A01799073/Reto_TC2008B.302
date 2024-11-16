@@ -3,10 +3,16 @@
 * Automovil
 -https://www.youtube.com/watch?v=AL_CQNHoWe0&t=554s
 -https://www.youtube.com/watch?v=02IURllsj7M
--https://docs.blender.org/manual/es/2.91/addons/mesh/auto_mirror.html#:~:text=Abre%20Blender%20y%20ve%20a,Mirror%20para%20habilitar%20el%20script.
--https://www.reddit.com/r/blenderhelp/comments/urqhsi/why_when_i_use_inset_and_hit_b_its_not_doing/
 -https://www.youtube.com/watch?v=JVZqQlsJ01c
 -https://www.youtube.com/watch?v=SaLd8YdLEGg
 
-* Edificios
--
+* Carreterra
+-https://youtu.be/25LjeFfswbk?si=vU-TlFqDdWnzI4Yb
+-https://youtu.be/GwUpQo-AYGI?si=fvKzExXy2bewPs7L
+-https://youtu.be/5mjCJvNctg0?si=s9tXZ_3P5KWxlhY9
+-https://www.youtube.com/watch?v=a-qzs-oQNtI
+
+
+* Solución de Errores/Configuración
+-https://docs.blender.org/manual/es/2.91/addons/mesh/auto_mirror.html#:~:text=Abre%20Blender%20y%20ve%20a,Mirror%20para%20habilitar%20el%20script.
+-https://www.reddit.com/r/blenderhelp/comments/urqhsi/why_when_i_use_inset_and_hit_b_its_not_doing/
