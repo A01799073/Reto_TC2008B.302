@@ -12,6 +12,9 @@
 -https://www.youtube.com/watch?v=a-qzs-oQNtI
 -https://www.youtube.com/watch?v=vKwHwPmIJDI
 
+*Edificio
+-
+
 
 * Solución de Errores/Configuración
 -https://docs.blender.org/manual/es/2.91/addons/mesh/auto_mirror.html#:~:text=Abre%20Blender%20y%20ve%20a,Mirror%20para%20habilitar%20el%20script.
