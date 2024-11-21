@@ -44,7 +44,7 @@ def agent_portrayal(agent):
         portrayal.update(
             {
                 "Shape": "rect",
-                "Color": "red",
+                "Color": "blue",
                 "Layer": 2,
                 "text_color": "white",
             }
