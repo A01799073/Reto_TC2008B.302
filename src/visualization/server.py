@@ -1,8 +1,13 @@
+# src/visualization/server.py
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import Slider
-from trafficBase.model import CityModel
-from trafficBase.agent import Car, Road, Traffic_Light, Destination, Obstacle
+from ..model.city_model import CityModel
+from ..agents.car import Car
+from ..agents.road import Road
+from ..agents.traffic_light import Traffic_Light
+from ..agents.destination import Destination
+from ..agents.obstacle import Obstacle
 
 
 def agent_portrayal(agent):

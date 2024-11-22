@@ -1,22 +1,15 @@
+# src/agents/traffic_light.py
 from mesa import Agent
 
 
-class TrafficLight(Agent):
-    def __init__(self, unique_id, model):
+class Traffic_Light(Agent):
+    """Traffic light. Where the traffic lights are in the grid."""
+
+    def __init__(self, unique_id, model, state=False, timeToChange=10):
         super().__init__(unique_id, model)
-        self.state = "red"  # Start in red
-        self.countdown = 3  # Start with 3 steps in red
-        self.timing = {
-            "red": 3,  # Red light lasts 3 steps
-            "green": 3,  # Green light lasts 1 step
-        }
+        self.state = state
+        self.timeToChange = timeToChange
 
     def step(self):
-        self.countdown -= 1
-        if self.countdown <= 0:
-            if self.state == "red":
-                self.state = "green"
-                self.countdown = self.timing["green"]
-            else:
-                self.state = "red"
-                self.countdown = self.timing["red"]
+        if self.model.schedule.steps % self.timeToChange == 0:
+            self.state = not self.state
