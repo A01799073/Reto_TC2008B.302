@@ -74,6 +74,7 @@ class CityModel(Model):
                     elif col == "D":
                         agent = Destination(f"d_{r*self.width+c}", self)
                         self.grid.place_agent(agent, pos)
+                        self.schedule.add(agent)
 
             # Find corner spawn points
             spawn_points = []
