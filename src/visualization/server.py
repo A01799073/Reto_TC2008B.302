@@ -1,19 +1,33 @@
+# src/visualization/server.py
 from mesa.visualization.modules import CanvasGrid, ChartModule
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import Slider
-from trafficBase.model import CityModel
-from trafficBase.agent import Car, Road, Traffic_Light, Destination, Obstacle
+from ..model.city_model import CityModel
+from ..agents.car import Car
+from ..agents.road import Road
+from ..agents.traffic_light import Traffic_Light
+from ..agents.destination import Destination
+from ..agents.obstacle import Obstacle
 
 
 def agent_portrayal(agent):
     if agent is None:
         return
-
     portrayal = {"Shape": "rect", "Filled": "true", "Layer": 1, "w": 1, "h": 1}
 
     if isinstance(agent, Road):
         portrayal["Color"] = "grey"
         portrayal["Layer"] = 0
+        # Añadir flechas según la dirección
+        if agent.direction == "Up":
+            portrayal["text"] = "↑"
+        elif agent.direction == "Down":
+            portrayal["text"] = "↓"
+        elif agent.direction == "Left":
+            portrayal["text"] = "←"
+        elif agent.direction == "Right":
+            portrayal["text"] = "→"
+        portrayal["text_color"] = "white"
 
     if isinstance(agent, Destination):
         portrayal["Color"] = "lightgreen"
@@ -35,7 +49,7 @@ def agent_portrayal(agent):
         portrayal.update(
             {
                 "Shape": "rect",
-                "Color": "red",
+                "Color": "blue",
                 "Layer": 2,
                 "text_color": "white",
             }
