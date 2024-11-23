@@ -75,21 +75,42 @@ class CityModel(Model):
                         agent = Destination(f"d_{r*self.width+c}", self)
                         self.grid.place_agent(agent, pos)
 
-            # Create cars
-            road_cells = []
-            for y in range(self.height):
-                cell_contents = self.grid.get_cell_list_contents((0, y))
+            # Find corner spawn points
+            spawn_points = []
+            # Check corners (clockwise from top-left)
+            corner_checks = [
+                (0, self.height-1),  # Top-left
+                (self.width-1, self.height-1),  # Top-right
+                (self.width-1, 0),  # Bottom-right
+                (0, 0)  # Bottom-left
+            ]
+
+            for corner in corner_checks:
+                cell_contents = self.grid.get_cell_list_contents(corner)
                 if any(isinstance(obj, Road) for obj in cell_contents):
-                    road_cells.append(y)
+                    spawn_points.append(corner)
 
-            road_cells.sort()
+            if not spawn_points:
+                # Fallback in case no corners have roads
+                print("Warning: No valid corner spawn points found")
+                return
 
-            num_cars = min(N, len(road_cells))
-            for i in range(num_cars):
-                car = Car(f"car_{i}", self)
-                pos = (0, road_cells[i % len(road_cells)])
-                self.grid.place_agent(car, pos)
-                self.schedule.add(car)
+            # Create cars
+            num_cars = N
+            cars_per_spawn = num_cars // len(spawn_points)
+            extra_cars = num_cars % len(spawn_points)
+
+            car_id = 0
+            for spawn_point in spawn_points:
+                # Calculate how many cars to spawn at this point
+                cars_to_spawn = cars_per_spawn + (1 if extra_cars > 0 else 0)
+                extra_cars -= 1 if extra_cars > 0 else 0
+                
+                for _ in range(cars_to_spawn):
+                    car = Car(f"car_{car_id}", self)
+                    self.grid.place_agent(car, spawn_point)
+                    self.schedule.add(car)
+                    car_id += 1
 
             # Initialize data collector
             self.datacollector = DataCollector(
@@ -144,12 +165,12 @@ class CityModel(Model):
             for i, (pos2, col2) in enumerate(remaining_positions):
                 dx = abs(pos1[0] - pos2[0])
                 dy = abs(pos1[1] - pos2[1])
-                
+
                 # A valid pair should be:
                 # 1. Close to each other (within 2 cells)
                 # 2. Either on same vertical line (dx=0) or horizontal line (dy=0)
                 # 3. Not diagonally placed
-                if ((dx == 0 and dy == 1) or (dy == 0 and dx == 1)):
+                if (dx == 0 and dy == 1) or (dy == 0 and dx == 1):
                     dist = dx + dy  # Manhattan distance
                     if dist < min_distance:
                         min_distance = dist
@@ -159,12 +180,14 @@ class CityModel(Model):
                 pos2, col2 = remaining_positions.pop(closest_pair)
                 paired_lights[pos1, col1] = pair_id
                 paired_lights[pos2, col2] = pair_id
-                
+
                 # Determine orientation based on how lights are positioned
                 is_horizontal = pos1[1] == pos2[1]
                 self.pair_orientations = getattr(self, "pair_orientations", {})
-                self.pair_orientations[pair_id] = "horizontal" if is_horizontal else "vertical"
-                
+                self.pair_orientations[pair_id] = (
+                    "horizontal" if is_horizontal else "vertical"
+                )
+
                 pair_id += 1
             else:
                 # If no valid pair found, this might indicate an issue
