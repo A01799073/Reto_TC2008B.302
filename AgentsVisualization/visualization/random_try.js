@@ -80,12 +80,62 @@ function parseOBJ(objText) {
                 break;
             case 'f': // Caras (índices)
             //modificar
-                const face = parts.slice(1).map(part => part.split('/')[0] - 1);
-                indices.push(...face);
+                //const face = parts.slice(1).map(part => part.split('/')[0] - 1);
+                for (let i = 1; i < parts.length - 2; i++) {
+                    const triangles = [1, i + 1, i + 2];
+                    for (const vertex of triangles.map(idx => parts[idx])) {
+                        const [posIndex, texIndex, normIndex] = vertex.split('/').map(v => parseInt(v, 10) - 1);
+
+                        // Añadir la posición, normal y coordenada de textura correspondientes
+                        if (posIndex !== undefined) {
+                            positionData.push(
+                                positions[posIndex * 3],
+                                positions[posIndex * 3 + 1],
+                                positions[posIndex * 3 + 2]
+                            );
+                        }
+                        if (texIndex !== undefined && texCoords.length) {
+                            texCoordData.push(
+                                texCoords[texIndex * 2],
+                                texCoords[texIndex * 2 + 1]
+                            );
+                        }
+                        if (normIndex !== undefined && normals.length) {
+                            normalData.push(
+                                normals[normIndex * 3],
+                                normals[normIndex * 3 + 1],
+                                normals[normIndex * 3 + 2]
+                            );
+                        }
+                        // Añadir el índice del vértice
+                        indices.push(indices.length);
+                    }
+                }
                 break;
         }
     }
-    return { vertices, normals, indices };
+    return {
+        a_position: {
+            numComponents: 3,
+            data: positionData
+        },
+        a_color: {
+            numComponents: 4,
+            data: colorData
+        },
+        a_normal: {
+            numComponents: 3,
+            data: normalData
+        },
+        a_texCoord: {
+            numComponents: 2,
+            data: texCoordData
+        },
+        indices: {
+            numComponents: 3,
+            data: indices
+        }
+    };
 }
 
 // Procesa los modelos OBJ
