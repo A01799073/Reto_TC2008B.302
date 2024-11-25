@@ -4,8 +4,8 @@ import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
 // Modelos 3D
-import roadModel from '../3D_models/Road/road1_reto.obj?raw';
-import trafficLightModel from '../3D_models/Semaforo/semaforo_horizontalobj.obj?raw';
+import roadModel from './3D_models/Road/road1_reto.obj?raw';
+import trafficLightModel from './3D_models/Semaforo/semaforo_horizontalobj.obj?raw';
 
 // Vertex Shader
 const vsGLSL = `#version 300 es
