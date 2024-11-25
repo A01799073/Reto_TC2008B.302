@@ -1,7 +1,7 @@
-# Blender 4.2.3 LTS MTL File: 'None'
+# Blender 4.3.0 MTL File: 'None'
 # www.blender.org
 
-newmtl Material
+newmtl Material.001
 Ns 492.548737
 Ka 2.000000 2.000000 2.000000
 Ks 0.500000 0.500000 0.500000
@@ -9,4 +9,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 3
-map_Kd Texture_auto_1.png
+map_Kd C:/Users/kresm/Videos/carpeta de contenido_reto/Auto/Texture_auto_1.png

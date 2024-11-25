@@ -79,6 +79,7 @@ function parseOBJ(objText) {
                 normals.push(...parts.slice(1).map(Number));
                 break;
             case 'f': // Caras (índices)
+            //modificar
                 const face = parts.slice(1).map(part => part.split('/')[0] - 1);
                 indices.push(...face);
                 break;
