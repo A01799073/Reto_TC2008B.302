@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "lil-gui": "^0.20.0",
+    "twgl.js": "^5.5.4",
+    "vite": "^5.4.11",
+    "vite-plugin-raw": "^1.0.3"
+  }
+}
