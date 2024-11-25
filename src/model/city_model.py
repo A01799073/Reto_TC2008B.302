@@ -201,3 +201,36 @@ class CityModel(Model):
         """Advance the model by one step."""
         self.datacollector.collect(self)
         self.schedule.step()
+        # Check if the actual number of cars is less than the maximum
+        if len([agent for agent in self.schedule.agents if isinstance(agent, Car)]) < self.num_agents:
+            self.add_new_car()
+
+    def add_new_car(self):
+        """Add a new car to the simulation"""
+        new_car = Car(f"car_{len(self.schedule.agents)}", self)
+        # Find a valid spawn point for the new car
+        spawn_point = self.find_valid_spawn_point()
+        if spawn_point:
+            self.grid.place_agent(new_car, spawn_point)
+            self.schedule.add(new_car)
+        else:
+            print("No valid spawn point found to add new car.")
+
+    def find_valid_spawn_point(self):
+        """Find a valid spawn point for a new car"""
+        # Check corners (clockwise from top-left)
+        corner_checks = [
+            (0, self.height-1),  # Top-left
+            (self.width-1, self.height-1),  # Top-right
+            (self.width-1, 0),  # Bottom-right
+            (0, 0)  # Bottom-left
+        ]
+
+        for corner in corner_checks:
+            cell_contents = self.grid.get_cell_list_contents(corner)
+            if any(isinstance(obj, Road) for obj in cell_contents):
+                return corner
+
+        # Fallback in case no corners have roads
+        print("Warning: No valid corner spawn points found")
+        return None

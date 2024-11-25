@@ -208,6 +208,11 @@ class Car(Agent):
                 self.state = "arrived"
                 self.model.grid.remove_agent(self)
                 self.model.schedule.remove(self)
+
+                # Check if the actual number of cars is less than the maximum
+                if len([agent for agent in self.model.schedule.agents if isinstance(agent, Car)]) < self.model.num_agents:
+                    self.model.add_new_car()
+
                 return
 
             # If the car doesn't have a calculated path, find a new one
