@@ -4,9 +4,9 @@ import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
 // Modelos 3D
-import roadModel from './3D_models/Simple_Funcionales/roadbasic.obj?raw';
+import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
-import buildModel from './3D_models/Simple_Funcionales/build_cuadrada.obj?raw';
+import buildModel from './3D_models/Simple_Funcionales/buildnew.obj?raw';
 
 // Vertex Shader
 const vsGLSL = `#version 300 es
@@ -234,7 +234,6 @@ function render(time = 0) {
 //   drawRoads(viewProjection);
     drawBuildings(viewProjection);
 //    drawTrafficLights(viewProjection);
-
     requestAnimationFrame(render);
 }
 
