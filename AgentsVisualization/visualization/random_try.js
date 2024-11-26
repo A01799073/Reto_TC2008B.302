@@ -4,8 +4,8 @@ import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
 // Modelos 3D
-import roadModel from './3D_models/Simple_Funcionales/carreterra_cuadrada.obj?raw';
-import trafficLightModel from './3D_models/Semaforo/semaforo_horizontal.obj?raw';
+import roadModel from './3D_models/Simple_Funcionales/roadbasic.obj?raw';
+import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
 import buildModel from './3D_models/Simple_Funcionales/build_cuadrada.obj?raw';
 
 // Vertex Shader
@@ -54,11 +54,11 @@ class Object3D {
 // Define el URI del servidor para agentes (si lo necesitas más adelante)
 const agent_server_uri = "http://localhost:8585";
 
-// Arrays para almacenar objetos en la escena
-const objects = [];
-
 // Variables relacionadas con WebGL
 let gl, programInfo, buffers;
+
+// Arrays para almacenar objetos en la escena
+const objects = [];
 
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 0, y: 10, z: 10 };
@@ -71,7 +71,6 @@ function parseOBJ(objText) {
 
     const positionData = [];
     const normalData = [];
-    const colorData = [];
 
     const lines = objText.split('\n');
     
@@ -111,10 +110,6 @@ function parseOBJ(objText) {
         a_normal: {
             numComponents: 3,
             data: normalData,
-        },
-        a_color: {
-            numComponents: 4,
-            data: colorData,
         },
         indices: {
             numComponents: 3,
@@ -173,27 +168,20 @@ async function main() {
 
     // Crea los buffers solo después de inicializar WebGL
     buffers = {
-        road: twgl.createBufferInfoFromArrays(gl, roadData),
-        trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
+        //road: twgl.createBufferInfoFromArrays(gl, roadData),
+        //trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
         building: twgl.createBufferInfoFromArrays(gl, buildingData),
     };
 
-    //Funciona
-    //console.log('Buffers creados:', buffers);
-/*
-    // Agrega objetos 3D a la escena
-    objects.push(
-        new Object3D("road", "road1", [0, 0, 0], [0, 0, 0], [1, 1, 1]),
-        new Object3D("trafficLight", "light1", [5, 0, 0], [0, Math.PI / 2, 0], [0.5, 0.5, 0.5])
-    );
-*/
+    objects.push(new Object3D('building', 'building1', [0, 0, 0]));
+
     // Configura la interfaz de usuario
     setupUI();
 
     // Renderiza la escena
     render();
 }
-
+/*
 // Función para dibujar carreteras
 function drawRoads(viewProjection) {
     const roadBuffer = buffers.road;
@@ -209,7 +197,7 @@ function drawTrafficLights(viewProjection) {
         .filter(obj => obj.type === "trafficLight")
         .forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
 }
-
+*/
 // Función para dibujar edificios
 function drawBuildings(viewProjection) {
     const buildingBuffer = buffers.building;
@@ -221,6 +209,8 @@ function drawBuildings(viewProjection) {
 function render(time = 0) {
     time *= 0.001; // Convierte el tiempo a segundos
 
+    // Configura el color de fondo del canvas
+    gl.clearColor(0.3, 0.3, 0.3, 1.0); // Cambia el fondo a un gris oscuro
     // Limpia el canvas
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
@@ -235,15 +225,15 @@ function render(time = 0) {
         Math.PI / 4,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
         0.5,
-        100
+        1000
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
 
     gl.useProgram(programInfo.program); // Asegura que se está usando el programa correcto
 
-    drawRoads(viewProjection);
+//   drawRoads(viewProjection);
     drawBuildings(viewProjection);
-    drawTrafficLights(viewProjection);
+//    drawTrafficLights(viewProjection);
 
     requestAnimationFrame(render);
 }
@@ -269,9 +259,9 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection) {
 // Configura la interfaz gráfica
 function setupUI() {
     const gui = new GUI();
-    gui.add(cameraPosition, 'x', -50, 50).name("Posición X");
-    gui.add(cameraPosition, 'y', -50, 50).name("Posición Y");
-    gui.add(cameraPosition, 'z', -50, 50).name("Posición Z");
+    gui.add(cameraPosition, 'x', -100, 100).name("Posición X");
+    gui.add(cameraPosition, 'y', -100, 100).name("Posición Y");
+    gui.add(cameraPosition, 'z', -100, 100).name("Posición Z");
 }
 
 // Inicia la aplicación
