@@ -60,87 +60,73 @@ const objects = [];
 let gl, programInfo, buffers;
 
 // Define la posición inicial de la cámara
-let cameraPosition = { x: 0, y: 9, z: 9 };
+let cameraPosition = { x: 0, y: 10, z: 10 };
 
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
     const vertices = [];
+    const positions = [];
     const normals = [];
     const indices = [];
+
+    const positionData = [];
+    const normalData = [];
+    const colorData = [];
+
     const lines = objText.split('\n');
-
-    for (const line of lines) {
-        const parts = line.trim().split(' ');
-        switch (parts[0]) {
-            case 'v': // Vértices
-                vertices.push(...parts.slice(1).map(Number));
-                break;
-            case 'vn': // Normales
-                normals.push(...parts.slice(1).map(Number));
-                break;
-            case 'f': // Caras (índices)
-            //modificar
-                //const face = parts.slice(1).map(part => part.split('/')[0] - 1);
-                for (let i = 1; i < parts.length - 2; i++) {
-                    const triangles = [1, i + 1, i + 2];
-                    for (const vertex of triangles.map(idx => parts[idx])) {
-                        const [posIndex, texIndex, normIndex] = vertex.split('/').map(v => parseInt(v, 10) - 1);
-
-                        // Añadir la posición, normal y coordenada de textura correspondientes
-                        if (posIndex !== undefined) {
-                            positionData.push(
-                                positions[posIndex * 3],
-                                positions[posIndex * 3 + 1],
-                                positions[posIndex * 3 + 2]
-                            );
-                        }
-                        if (texIndex !== undefined && texCoords.length) {
-                            texCoordData.push(
-                                texCoords[texIndex * 2],
-                                texCoords[texIndex * 2 + 1]
-                            );
-                        }
-                        if (normIndex !== undefined && normals.length) {
-                            normalData.push(
-                                normals[normIndex * 3],
-                                normals[normIndex * 3 + 1],
-                                normals[normIndex * 3 + 2]
-                            );
-                        }
-                        // Añadir el índice del vértice
-                        indices.push(indices.length);
-                    }
+    
+    lines.forEach(line => {
+        const parts = line.trim().split(/\s+/);
+        const type = parts[0];
+        if (type === 'v') {
+            // Vértices
+            positions.push(...parts.slice(1).map(Number));
+        } else if (type === 'vn') {
+            // Normales
+            normals.push(...parts.slice(1).map(Number));
+        } else if (type === 'f') {
+           // Caras (índices)
+            const face = parts.slice(1);
+            const faceIndices = [];
+            face.forEach(part => {
+                const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
+                if (posIndex !== undefined) {
+                    positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
                 }
-                break;
+                if (normIndex !== undefined) {
+                    normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
+                }
+                faceIndices.push(positionData.length / 3 - 1);
+                // Colores básicos
+                colorData.push(0.4, 0.4, 0.4, 1.0);
+            });
+
+            // Genera triángulos para la cara
+            for (let i = 1; i < faceIndices.length - 1; i++) {
+                indices.push(faceIndices[0], faceIndices[i], faceIndices[i + 1]);
+            }
         }
-    }
+    });
+
     return {
         a_position: {
             numComponents: 3,
-            data: positionData
-        },
-        a_color: {
-            numComponents: 4,
-            data: colorData
+            data: positionData,
         },
         a_normal: {
             numComponents: 3,
-            data: normalData
+            data: normalData,
         },
-        a_texCoord: {
-            numComponents: 2,
-            data: texCoordData
+        a_color: {
+            numComponents: 4,
+            data: colorData,
         },
         indices: {
             numComponents: 3,
-            data: indices
-        }
+            data: indices,
+        },
     };
 }
-
-// Procesa los modelos OBJ
-const roadData = parseOBJ(roadModel);
-const trafficLightData = parseOBJ(trafficLightModel);
 
 // Configuración principal de la aplicación
 async function main() {
@@ -155,19 +141,22 @@ async function main() {
     // Programa de shaders
     programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
 
-    // Crea los buffers para cada modelo
+    // Procesa los modelos OBJ
+    const roadData = parseOBJ(roadModel);
+    const trafficLightData = parseOBJ(trafficLightModel);
+
+    //------Sí corren los datos------
+    //console.log('Datos de carretera:', roadData);
+    //console.log('Datos del semáforo:', trafficLightData);
+
+    // Crea los buffers solo después de inicializar WebGL
     buffers = {
-        road: twgl.createBufferInfoFromArrays(gl, {
-            a_position: { numComponents: 3, data: roadData.vertices },
-            a_normal: { numComponents: 3, data: roadData.normals },
-            indices: roadData.indices,
-        }),
-        trafficLight: twgl.createBufferInfoFromArrays(gl, {
-            a_position: { numComponents: 3, data: trafficLightData.vertices },
-            a_normal: { numComponents: 3, data: trafficLightData.normals },
-            indices: trafficLightData.indices,
-        }),
+        road: twgl.createBufferInfoFromArrays(gl, roadData),
+        trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
     };
+
+    //Funciona
+    //console.log('Buffers creados:', buffers);
 
     // Agrega objetos 3D a la escena
     objects.push(
@@ -199,22 +188,36 @@ function render(time = 0) {
     const projection = twgl.m4.perspective(
         Math.PI / 4,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
-        0.5,
+        //0.5,
+        0.1,
         100
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
 
+    gl.useProgram(programInfo.program); // Asegura que se está usando el programa correcto
+
     // Renderiza cada objeto
     objects.forEach(obj => {
+        // Obtén el buffer correspondiente al tipo de objeto
+        const bufferInfo = buffers[obj.type];
+        if (!bufferInfo) {
+            console.error(`No se encontró buffer para el objeto: ${obj.type}`);
+            return;
+        }
+
+        // Verifica si el buffer tiene datos válidos
+        if (!bufferInfo.attribs || !bufferInfo.attribs.a_position) {
+            console.error(`El buffer para ${obj.type} no tiene atributos válidos.`);
+            return;
+        }
+
         const world = twgl.m4.identity();
         twgl.m4.translate(world, obj.position, world);
         twgl.m4.rotateY(world, time, world); // Rotación animada
         twgl.m4.scale(world, obj.scale, world);
 
         const matrix = twgl.m4.multiply(viewProjection, world);
-
-        // Selecciona el buffer según el tipo de objeto
-        const bufferInfo = buffers[obj.type];
+        //const bufferInfo = buffers[obj.type];
 
         twgl.setUniforms(programInfo, {
             u_worldViewProjection: matrix,
@@ -224,6 +227,10 @@ function render(time = 0) {
         // Configura y dibuja el buffer
         twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
         twgl.drawBufferInfo(gl, bufferInfo);
+
+        //Si salen los datos
+        console.log(`Renderizado exitoso del objeto: ${obj.type}`);
+
     });
 
     // Solicita el próximo cuadro
