@@ -4,8 +4,9 @@ import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
 // Modelos 3D
-import roadModel from './3D_models/Road/road1.obj?raw';
+import roadModel from './3D_models/Simple_Funcionales/carreterra_cuadrada.obj?raw';
 import trafficLightModel from './3D_models/Semaforo/semaforo_horizontal.obj?raw';
+import buildModel from './3D_models/Simple_Funcionales/build_cuadrada.obj?raw';
 
 // Vertex Shader
 const vsGLSL = `#version 300 es
@@ -88,16 +89,7 @@ function parseOBJ(objText) {
             const face = parts.slice(1);
             const faceIndices = [];
             face.forEach(part => {
-                /*const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
-                if (posIndex !== undefined) {
-                    positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
-                }
-                if (normIndex !== undefined) {
-                    normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
-                }
-                faceIndices.push(positionData.length / 3 - 1);
-                // Colores básicos
-                colorData.push(0.4, 0.4, 0.4, 1.0);*/
+
                 const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
                 positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
                 normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
@@ -131,6 +123,29 @@ function parseOBJ(objText) {
     };
 }
 
+// Función para cargar el mapa y procesarlo
+async function loadMap(mapPath) {
+    const response = await fetch(mapPath);
+    const mapText = await response.text();
+    const lines = mapText.split('\n');
+
+    const size = 2; // Tamaño de cada celda en la cuadrícula
+    lines.forEach((line, row) => {
+        [...line].forEach((char, col) => {
+            const x = col * size;
+            const z = row * size;
+
+            if (char === 'v') {
+                objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z]));
+            } else if (char === '#') {
+                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [1, 2, 1]));
+            } else if (char === 'S' || char === 's') {
+                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z]));
+            }
+        });
+    });
+}
+
 // Configuración principal de la aplicación
 async function main() {
     const canvas = document.querySelector('canvas');
@@ -147,48 +162,36 @@ async function main() {
     // Procesa los modelos OBJ
     const roadData = parseOBJ(roadModel);
     const trafficLightData = parseOBJ(trafficLightModel);
+    const buildingData = parseOBJ(buildModel);
 
     //------Sí corren los datos------
     //console.log('Datos de carretera:', roadData);
     //console.log('Datos del semáforo:', trafficLightData);
 
+    // Cargar mapa
+    await loadMap('./city_files/2022_base.txt');
+
     // Crea los buffers solo después de inicializar WebGL
     buffers = {
         road: twgl.createBufferInfoFromArrays(gl, roadData),
         trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
+        building: twgl.createBufferInfoFromArrays(gl, buildingData),
     };
 
     //Funciona
     //console.log('Buffers creados:', buffers);
-
+/*
     // Agrega objetos 3D a la escena
     objects.push(
         new Object3D("road", "road1", [0, 0, 0], [0, 0, 0], [1, 1, 1]),
         new Object3D("trafficLight", "light1", [5, 0, 0], [0, Math.PI / 2, 0], [0.5, 0.5, 0.5])
     );
-
+*/
     // Configura la interfaz de usuario
     setupUI();
 
     // Renderiza la escena
     render();
-}
-
-function drawObject(obj, bufferInfo, programInfo, viewProjection) {
-    const world = twgl.m4.identity();
-    twgl.m4.translate(world, obj.position, world);
-    twgl.m4.rotateY(world, obj.rotation[1], world);
-    twgl.m4.scale(world, obj.scale, world);
-
-    const matrix = twgl.m4.multiply(viewProjection, world);
-
-    twgl.setUniforms(programInfo, {
-        u_worldViewProjection: matrix,
-        u_world: world,
-    });
-
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-    twgl.drawBufferInfo(gl, bufferInfo);
 }
 
 // Función para dibujar carreteras
@@ -207,6 +210,13 @@ function drawTrafficLights(viewProjection) {
         .forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
 }
 
+// Función para dibujar edificios
+function drawBuildings(viewProjection) {
+    const buildingBuffer = buffers.building;
+    objects
+        .filter(obj => obj.type === "building")
+        .forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
+}
 // Renderiza la escena
 function render(time = 0) {
     time *= 0.001; // Convierte el tiempo a segundos
@@ -224,8 +234,7 @@ function render(time = 0) {
     const projection = twgl.m4.perspective(
         Math.PI / 4,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
-        //0.5,
-        0.1,
+        0.5,
         100
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
@@ -233,9 +242,28 @@ function render(time = 0) {
     gl.useProgram(programInfo.program); // Asegura que se está usando el programa correcto
 
     drawRoads(viewProjection);
+    drawBuildings(viewProjection);
     drawTrafficLights(viewProjection);
 
     requestAnimationFrame(render);
+}
+
+
+function drawObject(obj, bufferInfo, programInfo, viewProjection) {
+    const world = twgl.m4.identity();
+    twgl.m4.translate(world, obj.position, world);
+    twgl.m4.rotateY(world, obj.rotation[1], world);
+    twgl.m4.scale(world, obj.scale, world);
+
+    const matrix = twgl.m4.multiply(viewProjection, world);
+
+    twgl.setUniforms(programInfo, {
+        u_worldViewProjection: matrix,
+        u_world: world,
+    });
+
+    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+    twgl.drawBufferInfo(gl, bufferInfo);
 }
 
 // Configura la interfaz gráfica
