@@ -64,7 +64,6 @@ let cameraPosition = { x: 0, y: 10, z: 10 };
 
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
-    const vertices = [];
     const positions = [];
     const normals = [];
     const indices = [];
@@ -89,7 +88,7 @@ function parseOBJ(objText) {
             const face = parts.slice(1);
             const faceIndices = [];
             face.forEach(part => {
-                const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
+                /*const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
                 if (posIndex !== undefined) {
                     positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
                 }
@@ -98,7 +97,11 @@ function parseOBJ(objText) {
                 }
                 faceIndices.push(positionData.length / 3 - 1);
                 // Colores básicos
-                colorData.push(0.4, 0.4, 0.4, 1.0);
+                colorData.push(0.4, 0.4, 0.4, 1.0);*/
+                const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
+                positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
+                normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
+                faceIndices.push(positionData.length / 3 - 1);
             });
 
             // Genera triángulos para la cara
@@ -171,6 +174,39 @@ async function main() {
     render();
 }
 
+function drawObject(obj, bufferInfo, programInfo, viewProjection) {
+    const world = twgl.m4.identity();
+    twgl.m4.translate(world, obj.position, world);
+    twgl.m4.rotateY(world, obj.rotation[1], world);
+    twgl.m4.scale(world, obj.scale, world);
+
+    const matrix = twgl.m4.multiply(viewProjection, world);
+
+    twgl.setUniforms(programInfo, {
+        u_worldViewProjection: matrix,
+        u_world: world,
+    });
+
+    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+    twgl.drawBufferInfo(gl, bufferInfo);
+}
+
+// Función para dibujar carreteras
+function drawRoads(viewProjection) {
+    const roadBuffer = buffers.road;
+    objects
+        .filter(obj => obj.type === "road")
+        .forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection));
+}
+
+// Función para dibujar semáforos
+function drawTrafficLights(viewProjection) {
+    const lightBuffer = buffers.trafficLight;
+    objects
+        .filter(obj => obj.type === "trafficLight")
+        .forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
+}
+
 // Renderiza la escena
 function render(time = 0) {
     time *= 0.001; // Convierte el tiempo a segundos
@@ -196,44 +232,9 @@ function render(time = 0) {
 
     gl.useProgram(programInfo.program); // Asegura que se está usando el programa correcto
 
-    // Renderiza cada objeto
-    objects.forEach(obj => {
-        // Obtén el buffer correspondiente al tipo de objeto
-        const bufferInfo = buffers[obj.type];
-        if (!bufferInfo) {
-            console.error(`No se encontró buffer para el objeto: ${obj.type}`);
-            return;
-        }
+    drawRoads(viewProjection);
+    drawTrafficLights(viewProjection);
 
-        // Verifica si el buffer tiene datos válidos
-        if (!bufferInfo.attribs || !bufferInfo.attribs.a_position) {
-            console.error(`El buffer para ${obj.type} no tiene atributos válidos.`);
-            return;
-        }
-
-        const world = twgl.m4.identity();
-        twgl.m4.translate(world, obj.position, world);
-        twgl.m4.rotateY(world, time, world); // Rotación animada
-        twgl.m4.scale(world, obj.scale, world);
-
-        const matrix = twgl.m4.multiply(viewProjection, world);
-        //const bufferInfo = buffers[obj.type];
-
-        twgl.setUniforms(programInfo, {
-            u_worldViewProjection: matrix,
-            u_world: world,
-        });
-
-        // Configura y dibuja el buffer
-        twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-        twgl.drawBufferInfo(gl, bufferInfo);
-
-        //Si salen los datos
-        console.log(`Renderizado exitoso del objeto: ${obj.type}`);
-
-    });
-
-    // Solicita el próximo cuadro
     requestAnimationFrame(render);
 }
 
