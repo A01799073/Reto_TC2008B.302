@@ -7,9 +7,9 @@ import { GUI } from 'lil-gui';
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
 import buildModel from './3D_models/Simple_Funcionales/buildnew.obj?raw';
-import carModel from './3D_models/Auto/car.obj.?raw';
+//import carModel from './3D_models/Auto/car.obj.?raw';
 
-// Vertex Shader
+// Vertex Shadeor
 const vsGLSL = `#version 300 es
 in vec4 a_position;
 in vec3 a_normal;
