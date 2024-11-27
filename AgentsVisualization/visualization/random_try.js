@@ -66,6 +66,52 @@ void main() {
 }
 `;
 
+function createCubeData() {
+  return {
+    a_position: {
+      numComponents: 3,
+      data: [
+        // Front face
+        -2, -2, 2,
+        2, -2, 2,
+        2, 2, 2,
+        -2, 2, 2,
+        // Back face
+        -2, -2, -2,
+        -2, 2, -2,
+        2, 2, -2,
+        2, -2, -2,
+      ],
+    },
+    a_normal: {
+      numComponents: 3,
+      data: [
+        // Front
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+        // Back
+        0, 0, -1,
+        0, 0, -1,
+        0, 0, -1,
+        0, 0, -1,
+      ],
+    },
+    indices: {
+      numComponents: 3,
+      data: [
+        0, 1, 2, 0, 2, 3,  // Front
+        4, 5, 6, 4, 6, 7,  // Back
+        0, 4, 7, 0, 7, 1,  // Top
+        2, 6, 5, 2, 5, 3,  // Bottom
+        0, 3, 5, 0, 5, 4,  // Right
+        1, 7, 6, 1, 6, 2,  // Left
+      ],
+    },
+  };
+}
+
 // Clase para representar objetos 3D
 class Object3D {
   constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
@@ -241,11 +287,22 @@ async function main() {
   const specialRoadData = parseOBJ(specialModel);
   const trafficLightData = parseOBJ(trafficLightModel);
   const buildingData = parseOBJ(buildModel);
-  const carData = parseOBJ(carModel);
-
+  const carData = createCubeData();
+  console.log('Created cube data:', carData);
 
   //Mapa
   processMap();
+
+  // Add a test car at origin
+  const testCar = new Object3D(
+    'car',
+    'test-car',
+    [0, 1, -30], // [x, y, z] where z is negative Mesa y
+    [0, 0, 0],
+    [1, 1, 1]
+  );
+  objects.push(testCar);
+  console.log('Added test car:', testCar);
 
   // Initialize buffers object first
   buffers = {
@@ -255,21 +312,7 @@ async function main() {
     building: twgl.createBufferInfoFromArrays(gl, buildingData),
     car: twgl.createBufferInfoFromArrays(gl, carData),
   };
-
-  try {
-    const response = await fetch(`${agent_server_uri}/init`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ NAgents: 100 })
-    });
-
-    if (!response.ok) throw new Error('Failed to initialize simulation');
-    await updateSimulation();
-  } catch (error) {
-    console.error('Error initializing simulation:', error);
-  }
+  console.log('Buffers initialized:', Object.keys(buffers));
 
   setupUI();
   render();
@@ -312,36 +355,6 @@ function drawCars(viewProjection) {
 */
 
 async function render() {
-  // Get state from backend
-  const state = await getState();
-  if (state && state.cars && state.traffic_lights) {
-    // Update or create car objects
-    state.cars.forEach(carData => {
-      // Find if the car already exists in objects array
-      let car = objects.find(obj => obj.type === 'car' && obj.id === carData.id);
-
-      if (!car) {
-        // Create new car object if it doesn't exist
-        car = new Object3D('car', carData.id, [carData.x, carData.y, carData.z]);
-        objects.push(car);
-      } else {
-        // Update existing car position
-        car.position = [carData.x, carData.y, carData.z];
-      }
-    });
-
-    // Update traffic light states
-    state.traffic_lights.forEach(lightData => {
-      // Find corresponding traffic light in objects array
-      let light = objects.find(obj => obj.type === 'trafficLight' && obj.id === lightData.id);
-      if (light) {
-        // Update traffic light color based on state
-        light.state = lightData.state;
-        // You might want to update the color in the drawObject function based on state
-      }
-    });
-  }
-
   // Regular WebGL rendering
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -368,19 +381,30 @@ async function render() {
   drawSpecialRoads(viewProjection);
   drawBuildings(viewProjection);
   drawTrafficLights(viewProjection);
-  // Add function to draw cars
+
+  // Log before drawing cars
+  console.log('About to draw cars');
   drawCars(viewProjection);
 
-  // Continue animation loop
   requestAnimationFrame(render);
 }
 
 // Add drawCars function (similar to your other draw functions)
 function drawCars(viewProjection) {
-  if (!buffers.car) return; // Make sure car buffer exists
+  if (!buffers.car) {
+    console.error('Car buffer is missing');
+    return;
+  }
+
   const cars = objects.filter(obj => obj.type === "car");
+  console.log('Found cars to draw:', cars);
+
   cars.forEach(car => {
-    // You might want to add a color for cars in your objectColors
+    console.log('Drawing car:', {
+      id: car.id,
+      position: car.position,
+      scale: car.scale
+    });
     drawObject(car, buffers.car, programInfo, viewProjection, objectColors.car);
   });
 }
