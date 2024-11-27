@@ -177,14 +177,12 @@ async function getState() {
   }
 
   try {
-    console.log('Fetching state...');
     const response = await fetch(`${agent_server_uri}/state`);
     if (!response.ok) {
       simulationInitialized = false; // Reset if we get an error
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log('State data received:', data);
     return data;
   } catch (error) {
     console.error('Error getting state:', error);
@@ -294,15 +292,15 @@ function parseOBJ(objText) {
 // Procesa el mapa para crear los objetos
 function processMap() {
   const lines = mapData.trim().split('\n');
-  const size = 5; // Tamaño de cada celda en la cuadrícula
+  const size = 5; // Grid cell size
 
   lines.forEach((line, row) => {
     [...line].forEach((char, col) => {
       const x = col * size;
-      const z = row * size;
-      //Agregar un road diferente para las destino?
+      const z = row * size;  // Make this match the car coordinates
+
       if (char === 'v' || char === '<' || char === '>' || char === '^') {
-        objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
+        objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z]));
       } else if (char === 'D') {
         objects.push(new Object3D('specialRoad', `specialRoad-${row}-${col}`, [x, 0, z]));
       } else if (char === '#') {
@@ -330,7 +328,6 @@ async function main() {
   const trafficLightData = parseOBJ(trafficLightModel);
   const buildingData = parseOBJ(buildModel);
   const carData = createCubeData();
-  console.log('Created cube data:', carData);
 
   //Mapa
   processMap();
@@ -343,15 +340,12 @@ async function main() {
     building: twgl.createBufferInfoFromArrays(gl, buildingData),
     car: twgl.createBufferInfoFromArrays(gl, carData),
   };
-  console.log('Buffers initialized:', Object.keys(buffers));
 
   try {
-    console.log('Starting initialization...');
-    await initSimulation(100);
+    await initSimulation(1);
     if (!simulationInitialized) {
       throw new Error('Failed to initialize simulation');
     }
-    console.log('Initialization complete');
 
     setupUI();
     render();
@@ -418,23 +412,14 @@ async function render() {
 
       state.cars.forEach(carData => {
         // Log raw car data
-        console.log('Raw car data:', carData);
-        console.log('Grid position:', {
-          x: carData.x,
-          y: carData.y,
-          z: carData.z
-        });
 
         // Convert Mesa coordinates to WebGL coordinates
         // Invert both x and z
         const webGLPosition = [
-          (carData.x * 5),      // Invert x
+          (carData.x * 5),    // Add negative sign to invert x
           1,
-          (carData.z * 5)        // Invert z by removing negative sign
+          (carData.z * 5)      // Keep z as is
         ];
-
-        console.log('Mesa position:', { x: carData.x, y: carData.y });
-        console.log('WebGL position:', webGLPosition);
 
         const car = new Object3D(
           'car',
@@ -444,6 +429,8 @@ async function render() {
           [0.5, 0.5, 0.5]  // Made cars smaller
         );
         objects.push(car);
+        console.log('Raw car data:', carData);
+        console.log('WebGL position:', webGLPosition);
       });
 
       // Regular WebGL rendering
@@ -494,14 +481,8 @@ function drawCars(viewProjection) {
   }
 
   const cars = objects.filter(obj => obj.type === "car");
-  console.log('Found cars to draw:', cars);
 
   cars.forEach(car => {
-    console.log('Drawing car:', {
-      id: car.id,
-      position: car.position,
-      scale: car.scale
-    });
     drawObject(car, buffers.car, programInfo, viewProjection, objectColors.car);
   });
 }

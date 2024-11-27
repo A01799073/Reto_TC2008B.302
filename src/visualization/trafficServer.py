@@ -28,7 +28,7 @@ def init_model():
 
     if request.method == "POST":
         try:
-            number_agents = int(request.json.get("NAgents", 100))
+            number_agents = int(request.json.get("NAgents", 1))
             currentStep = 0
             cityModel = CityModel(number_agents)
             return jsonify({"message": "Model initialized"})
