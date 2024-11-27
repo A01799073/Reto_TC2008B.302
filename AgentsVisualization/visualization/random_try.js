@@ -84,6 +84,8 @@ const objects = [];
 
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 50, y: 50, z: 50 };
+let cameraTarget = { x: 0, y: 0, z: 0 };     // Punto al que apunta la cámara
+
 
 // Parámetros de iluminación direccional
 const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
@@ -248,11 +250,19 @@ function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
 
-    const camera = twgl.m4.lookAt(
+    /*const camera = twgl.m4.lookAt(
         [cameraPosition.x, cameraPosition.y, cameraPosition.z],
         [0, 0, 0],
         [0, 1, 0]
     );
+    */
+
+    const camera = twgl.m4.lookAt(
+        [cameraPosition.x, cameraPosition.y, cameraPosition.z], // Posición de la cámara
+        [cameraTarget.x, cameraTarget.y, cameraTarget.z],       // Objetivo de la cámara
+        [0, 1, 0]                                              // Vector "arriba"
+    );
+
     const projection = twgl.m4.perspective(
         Math.PI / 6,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
@@ -296,9 +306,19 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection,color) {
 // Configura la interfaz gráfica
 function setupUI() {
     const gui = new GUI();
+    const cameraFolder = gui.addFolder ('Controles de Cámara');
     gui.add(cameraPosition, 'x', -200, 200).name("Posición X");
     gui.add(cameraPosition, 'y', -200, 200).name("Posición Y");
     gui.add(cameraPosition, 'z', -200, 200).name("Posición Z");
+
+    // Controles para mover el objetivo de la cámara
+    const targetFolder = gui.addFolder('Objetivo de Cámara');
+    gui.add(cameraTarget, 'x', -200, 200).name("Target X");
+    gui.add(cameraTarget, 'y', -200, 200).name("Target Y");
+    gui.add(cameraTarget, 'z', -200, 200).name("Target Z");
+    
+    cameraFolder.open();
+    targetFolder.open()
 }
 
 // Inicia la aplicación
