@@ -16,6 +16,7 @@ in vec3 a_normal;
 
 uniform mat4 u_worldViewProjection;
 uniform mat4 u_world;
+uniform mat4 u_worldInverseTranspose;
 
 out vec3 v_normal;
 
@@ -30,13 +31,32 @@ const fsGLSL = `#version 300 es
 precision highp float;
 
 in vec3 v_normal;
+
+uniform vec3 u_lightDirection; // Dirección de la luz
+uniform vec3 u_lightColor;     // Color de la luz
+uniform vec3 u_objectColor;    // Color base del objeto
+
 out vec4 outColor;
 
 void main() {
     vec3 normal = normalize(v_normal);
-    vec3 lightDir = normalize(vec3(1, 1, 1));
-    float light = max(dot(normal, lightDir), 0.0);
-    outColor = vec4(vec3(0.7, 0.7, 0.7) * light, 1);
+    //vec3 lightDir = normalize(vec3(1, 1, 1));
+    vec3 lightDir = normalize(u_lightDirection); // Usa la dirección de luz uniforme
+
+
+     // Cálculo de iluminación difusa
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    // Color final combinando luz y color base
+    vec3 diffuse = diff * u_lightColor * u_objectColor;
+
+    //outColor = vec4(diffuse, 1.0);
+    // Mezcla con un término ambiental para iluminar sombras
+    vec3 ambient = 0.2 * u_objectColor;
+
+    outColor = vec4(diffuse + ambient, 1.0); // Combina difusión y luz ambiental
+    //float light = max(dot(normal, lightDir), 0.0);
+    //outColor = vec4(vec3(0.7, 0.7, 0.7) * light, 1);
 }
 `;
 
@@ -64,6 +84,14 @@ const objects = [];
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 50, y: 50, z: 50 };
 
+// Parámetros de iluminación direccional
+const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
+const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
+const objectColors = {
+    road: [0.3, 0.3, 0.3], // Gris para carreteras
+    building: [0.5, 0.5, 0.8], // Azul claro para edificios
+    //trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
+};
 // Representación del mapa como una variable
 const mapData = `
 v<<<<<<<<<<<<<<<<<s<<<<<
@@ -175,11 +203,6 @@ async function main() {
     const canvas = document.querySelector('canvas');
     gl = canvas.getContext('webgl2');
 
-    if (!gl) {
-        console.error("WebGL 2 no está soportado en este navegador.");
-        return;
-    }
-
     // Programa de shaders
     programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
 
@@ -246,31 +269,43 @@ function render() {
     const projection = twgl.m4.perspective(
         Math.PI / 6,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
-        3,
-        400
+        1,
+        1000
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
 
     gl.useProgram(programInfo.program);
 
-    drawRoads(viewProjection);
-    drawBuildings(viewProjection);
-    drawTrafficLights(viewProjection);
+    //drawRoads(viewProjection);
+    //drawBuildings(viewProjection);
+    //drawTrafficLights(viewProjection);
+    objects.forEach(obj => {
+        const bufferInfo = buffers[obj.type];
+        const color = objectColors[obj.type];
+        if (bufferInfo && color) {
+            drawObject(obj, bufferInfo, programInfo, viewProjection, color);
+        }
+    });    
 
     requestAnimationFrame(render);
 }
 
-function drawObject(obj, bufferInfo, programInfo, viewProjection) {
+function drawObject(obj, bufferInfo, programInfo, viewProjection,color) {
     const world = twgl.m4.identity();
     twgl.m4.translate(world, obj.position, world);
     twgl.m4.rotateY(world, obj.rotation[1], world);
     twgl.m4.scale(world, obj.scale, world);
 
     const matrix = twgl.m4.multiply(viewProjection, world);
+    const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
 
     twgl.setUniforms(programInfo, {
         u_worldViewProjection: matrix,
         u_world: world,
+        u_worldInverseTranspose: worldInverseTranspose,
+        u_lightDirection: lightDirection,
+        u_lightColor: lightColor,
+        u_objectColor: color,
     });
 
     twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
