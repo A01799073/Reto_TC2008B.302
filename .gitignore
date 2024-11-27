@@ -175,3 +175,6 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 AgentsVisualization/visualization/node_modules
+src/agents/__pycache__
+src/model/__pycache__
+src/__pycache__
