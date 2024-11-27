@@ -15,7 +15,8 @@ import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import specialModel from './3D_models/Simple_Funcionales/specialroad.obj?raw'
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
 import buildModel from './3D_models/Simple_Funcionales/build.newobj.obj?raw';
-//import carModel from './3D_models/Auto/car.obj.?raw';
+import carModel from './3D_models/Auto/car.obj?raw';
+
 
 // Vertex Shadeor
 const vsGLSL = `#version 300 es
@@ -76,6 +77,33 @@ class Object3D {
     this.matrix = twgl.m4.identity();
   }
 }
+
+// Initialize the simulation
+async function initSimulation(nAgents) {
+  try {
+    const response = await fetch(`${agent_server_uri}/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ NAgents: nAgents })
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('Error initializing simulation:', error);
+  }
+}
+
+// Get current state
+async function getState() {
+  try {
+    const response = await fetch(`${agent_server_uri}/state`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting state:', error);
+  }
+}
+
 async function updateSimulation() {
   try {
     const response = await fetch(`${agent_server_uri}/state`);
@@ -112,10 +140,11 @@ let cameraTarget = { x: 35.6, y: 200, z: 40.4 };     // Punto al que apunta la c
 const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
 const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
 const objectColors = {
-  road: [0.8, 0.8, 0.8], // Gris claro para carreteras
-  specialRoad: [1.0, 1.0, 0.0], // Amarillo para lasa carreteras de destino "D"
-  building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
-  trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
+  road: [0.8, 0.8, 0.8],
+  specialRoad: [1.0, 1.0, 0.0],
+  building: [0.0, 0.0, 0.8],
+  trafficLight: [0.8, 0.2, 0.2],
+  car: [0.2, 0.2, 0.8], // Add car color (blue in this case)
 };
 
 // Función para parsear archivos OBJ
@@ -212,6 +241,8 @@ async function main() {
   const specialRoadData = parseOBJ(specialModel);
   const trafficLightData = parseOBJ(trafficLightModel);
   const buildingData = parseOBJ(buildModel);
+  const carData = parseOBJ(carModel);
+
 
   //Mapa
   processMap();
@@ -222,7 +253,7 @@ async function main() {
     specialRoad: twgl.createBufferInfoFromArrays(gl, specialRoadData),
     trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
     building: twgl.createBufferInfoFromArrays(gl, buildingData),
-    car: twgl.createBufferInfoFromArrays(gl, trafficLightData) // Using trafficLight model for cars temporarily
+    car: twgl.createBufferInfoFromArrays(gl, carData),
   };
 
   try {
@@ -280,7 +311,38 @@ function drawCars(viewProjection) {
     lights.forEach(light => drawObject(car, carBufferBuffer, programInfo, viewProjection));
 */
 
-function render() {
+async function render() {
+  // Get state from backend
+  const state = await getState();
+  if (state && state.cars && state.traffic_lights) {
+    // Update or create car objects
+    state.cars.forEach(carData => {
+      // Find if the car already exists in objects array
+      let car = objects.find(obj => obj.type === 'car' && obj.id === carData.id);
+
+      if (!car) {
+        // Create new car object if it doesn't exist
+        car = new Object3D('car', carData.id, [carData.x, carData.y, carData.z]);
+        objects.push(car);
+      } else {
+        // Update existing car position
+        car.position = [carData.x, carData.y, carData.z];
+      }
+    });
+
+    // Update traffic light states
+    state.traffic_lights.forEach(lightData => {
+      // Find corresponding traffic light in objects array
+      let light = objects.find(obj => obj.type === 'trafficLight' && obj.id === lightData.id);
+      if (light) {
+        // Update traffic light color based on state
+        light.state = lightData.state;
+        // You might want to update the color in the drawObject function based on state
+      }
+    });
+  }
+
+  // Regular WebGL rendering
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST);
@@ -301,30 +363,28 @@ function render() {
 
   gl.useProgram(programInfo.program);
 
-  // Draw static objects
+  // Draw all objects
   drawRoads(viewProjection);
   drawSpecialRoads(viewProjection);
   drawBuildings(viewProjection);
   drawTrafficLights(viewProjection);
+  // Add function to draw cars
+  drawCars(viewProjection);
 
-  // Draw dynamic objects
-  trafficLights.forEach(light => {
-    const color = light.state ? [0, 1, 0] : [1, 0, 0];
-    drawObject(light, buffers.trafficLight, programInfo, viewProjection, color);
-  });
-
-  cars.forEach(car => {
-    drawObject(car, buffers.car, programInfo, viewProjection, [0, 0, 1]);
-  });
-
-  // Update simulation
-  if (frameCount % 30 === 0) {
-    updateSimulation();
-  }
-  frameCount++;
-
+  // Continue animation loop
   requestAnimationFrame(render);
 }
+
+// Add drawCars function (similar to your other draw functions)
+function drawCars(viewProjection) {
+  if (!buffers.car) return; // Make sure car buffer exists
+  const cars = objects.filter(obj => obj.type === "car");
+  cars.forEach(car => {
+    // You might want to add a color for cars in your objectColors
+    drawObject(car, buffers.car, programInfo, viewProjection, objectColors.car);
+  });
+}
+
 
 function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
   const world = twgl.m4.identity();
@@ -335,13 +395,19 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
   const matrix = twgl.m4.multiply(viewProjection, world);
   const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
 
+  // Modify color for traffic lights based on state
+  let finalColor = color;
+  if (obj.type === 'trafficLight' && obj.state !== undefined) {
+    finalColor = obj.state ? [0.0, 0.8, 0.0] : [0.8, 0.0, 0.0]; // Green when true, red when false
+  }
+
   twgl.setUniforms(programInfo, {
     u_worldViewProjection: matrix,
     u_world: world,
     u_worldInverseTranspose: worldInverseTranspose,
     u_lightDirection: lightDirection,
     u_lightColor: lightColor,
-    u_objectColor: color,
+    u_objectColor: finalColor,
   });
 
   twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
@@ -350,11 +416,11 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
 
 // Configura la interfaz gráfica
 function setupUI() {
-    const gui = new GUI();
-    const cameraFolder = gui.addFolder ('Controles de Cámara');
-    gui.add(cameraPosition, 'x', -200, 200).name("Posición X");
-    gui.add(cameraPosition, 'y', -200, 300).name("Posición Y");
-    gui.add(cameraPosition, 'z', -200, 300).name("Posición Z");
+  const gui = new GUI();
+  const cameraFolder = gui.addFolder('Controles de Cámara');
+  gui.add(cameraPosition, 'x', -200, 200).name("Posición X");
+  gui.add(cameraPosition, 'y', -200, 300).name("Posición Y");
+  gui.add(cameraPosition, 'z', -200, 300).name("Posición Z");
 
   // Controles para mover el objetivo de la cámara
   const targetFolder = gui.addFolder('Objetivo de Cámara');
