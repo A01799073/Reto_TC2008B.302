@@ -342,7 +342,7 @@ async function main() {
   };
 
   try {
-    await initSimulation(1);
+    await initSimulation(100);
     if (!simulationInitialized) {
       throw new Error('Failed to initialize simulation');
     }
@@ -416,9 +416,9 @@ async function render() {
         // Convert Mesa coordinates to WebGL coordinates
         // Invert both x and z
         const webGLPosition = [
-          (carData.x * 5),    // Add negative sign to invert x
+          (carData.x * 5),
           1,
-          (carData.z * 5)      // Keep z as is
+          (29 - carData.z) * 5  // Invert and offset Z coordinate
         ];
 
         const car = new Object3D(
