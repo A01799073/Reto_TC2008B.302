@@ -6,6 +6,10 @@ import { GUI } from 'lil-gui';
 // Text
 import mapData from '../../city_files/2022_base.txt?raw'
 
+let cars = [];
+let trafficLights = [];
+let frameCount = 0;
+
 // Modelos 3D
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import specialModel from './3D_models/Simple_Funcionales/specialroad.obj?raw'
@@ -63,16 +67,33 @@ void main() {
 
 // Clase para representar objetos 3D
 class Object3D {
-    constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
-        this.type = type; // Tipo de objeto (carretera, semáforo, etc.)
-        this.id = id; // Identificador único
-        this.position = position;
-        this.rotation = rotation;
-        this.scale = scale;
-        this.matrix = twgl.m4.identity();
-    }
+  constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+    this.type = type; // Tipo de objeto (carretera, semáforo, etc.)
+    this.id = id; // Identificador único
+    this.position = position;
+    this.rotation = rotation;
+    this.scale = scale;
+    this.matrix = twgl.m4.identity();
+  }
 }
+async function updateSimulation() {
+  try {
+    const response = await fetch(`${agent_server_uri}/state`);
+    if (!response.ok) throw new Error('Network response was not ok');
 
+    const data = await response.json();
+
+    cars = data.cars.map(car => new Object3D('car', car.id, [car.x, car.y, car.z]));
+    trafficLights = data.traffic_lights.map(light => {
+      const tLight = new Object3D('trafficLight', light.id, [light.x, light.y, light.z]);
+      tLight.state = light.state;
+      return tLight;
+    });
+
+  } catch (error) {
+    console.error('Error updating simulation:', error);
+  }
+}
 // Define el URI del servidor para agentes (si lo necesitas más adelante)
 const agent_server_uri = "http://localhost:8585";
 
@@ -91,150 +112,164 @@ let cameraTarget = { x: 35.6, y: 200, z: 40.4 };     // Punto al que apunta la c
 const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
 const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
 const objectColors = {
-    road: [0.8, 0.8, 0.8], // Gris claro para carreteras
-    specialRoad: [1.0,1.0,0.0], // Amarillo para lasa carreteras de destino "D"
-    building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
-    trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
+  road: [0.8, 0.8, 0.8], // Gris claro para carreteras
+  specialRoad: [1.0, 1.0, 0.0], // Amarillo para lasa carreteras de destino "D"
+  building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
+  trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
 };
 
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
-    const positions = [];
-    const normals = [];
-    const indices = [];
+  const positions = [];
+  const normals = [];
+  const indices = [];
 
-    const positionData = [];
-    const normalData = [];
+  const positionData = [];
+  const normalData = [];
 
-    const lines = objText.split('\n');
-    
-    lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        const type = parts[0];
-        if (type === 'v') {
-            // Vértices
-            positions.push(...parts.slice(1).map(Number));
-        } else if (type === 'vn') {
-            // Normales
-            normals.push(...parts.slice(1).map(Number));
-        } else if (type === 'f') {
-           // Caras (índices)
-            const face = parts.slice(1);
-            const faceIndices = [];
-            face.forEach(part => {
+  const lines = objText.split('\n');
 
-                const [posIndex, texIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
-                positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
-                normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
-                faceIndices.push(positionData.length / 3 - 1);
-            });
+  lines.forEach(line => {
+    const parts = line.trim().split(/\s+/);
+    const type = parts[0];
+    if (type === 'v') {
+      // Vértices
+      positions.push(...parts.slice(1).map(Number));
+    } else if (type === 'vn') {
+      // Normales
+      normals.push(...parts.slice(1).map(Number));
+    } else if (type === 'f') {
+      // Caras (índices)
+      const face = parts.slice(1);
+      const faceIndices = [];
+      face.forEach(part => {
 
-            // Genera triángulos para la cara
-            for (let i = 1; i < faceIndices.length - 1; i++) {
-                indices.push(faceIndices[0], faceIndices[i], faceIndices[i + 1]);
-            }
-        }
-    });
+        const [posIndex, texIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
+        positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
+        normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
+        faceIndices.push(positionData.length / 3 - 1);
+      });
 
-    // Estructura requerida para graficar en
-    return {
-        a_position: {
-            numComponents: 3,
-            data: positionData,
-        },
-        a_normal: {
-            numComponents: 3,
-            data: normalData,
-        },
-        indices: {
-            numComponents: 3,
-            data: indices,
-        },
-    };
+      // Genera triángulos para la cara
+      for (let i = 1; i < faceIndices.length - 1; i++) {
+        indices.push(faceIndices[0], faceIndices[i], faceIndices[i + 1]);
+      }
+    }
+  });
+
+  // Estructura requerida para graficar en
+  return {
+    a_position: {
+      numComponents: 3,
+      data: positionData,
+    },
+    a_normal: {
+      numComponents: 3,
+      data: normalData,
+    },
+    indices: {
+      numComponents: 3,
+      data: indices,
+    },
+  };
 }
 
 // Procesa el mapa para crear los objetos
 function processMap() {
-    const lines = mapData.trim().split('\n');
-    const size = 5; // Tamaño de cada celda en la cuadrícula
+  const lines = mapData.trim().split('\n');
+  const size = 5; // Tamaño de cada celda en la cuadrícula
 
-    lines.forEach((line, row) => {
-        [...line].forEach((char, col) => {
-            const x = col * size;
-            const z = row * size;
-            //Agregar un road diferente para las destino?
-            if (char === 'v' || char=== '<' || char=== '>'|| char === '^' ) {
-                objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
-            } else if (char === 'D') {
-                objects.push(new Object3D('specialRoad', `specialRoad-${row}-${col}`, [x, 0, z]));
-            } else if (char === '#') {
-                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
-            } else if (char === 'S' || char === 's') {
-                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.7, 0.5, 0.7]));
-            }
-        });
+  lines.forEach((line, row) => {
+    [...line].forEach((char, col) => {
+      const x = col * size;
+      const z = row * size;
+      //Agregar un road diferente para las destino?
+      if (char === 'v' || char === '<' || char === '>' || char === '^') {
+        objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
+      } else if (char === 'D') {
+        objects.push(new Object3D('specialRoad', `specialRoad-${row}-${col}`, [x, 0, z]));
+      } else if (char === '#') {
+        objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
+      } else if (char === 'S' || char === 's') {
+        objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.7, 0.5, 0.7]));
+      }
     });
+  });
 }
 
 // Configuración principal de la aplicación
 async function main() {
-    const canvas = document.querySelector('canvas');
-    gl = canvas.getContext('webgl2');
-    twgl.resizeCanvasToDisplaySize(gl.canvas);
-    gl.viewport(0,0,gl.canvas.clientWidth,gl.canvas.clientHeight)
+  const canvas = document.querySelector('canvas');
+  gl = canvas.getContext('webgl2');
+  twgl.resizeCanvasToDisplaySize(gl.canvas);
+  gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight)
 
-    // Programa de shaders
-    programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
+  // Programa de shaders
+  programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
 
-    // Procesa los modelos OBJ
-    const roadData = parseOBJ(roadModel);
-    const specialRoadData = parseOBJ(specialModel);
-    const trafficLightData = parseOBJ(trafficLightModel);
-    const buildingData = parseOBJ(buildModel);
+  // Procesa los modelos OBJ
+  const roadData = parseOBJ(roadModel);
+  const specialRoadData = parseOBJ(specialModel);
+  const trafficLightData = parseOBJ(trafficLightModel);
+  const buildingData = parseOBJ(buildModel);
 
-    //Mapa
-    processMap();
+  //Mapa
+  processMap();
 
-    // Crea los buffers solo después de inicializar WebGL
-    buffers = {
-        road: twgl.createBufferInfoFromArrays(gl, roadData),
-        specialRoad: twgl.createBufferInfoFromArrays(gl, specialRoadData),
-        trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
-        building: twgl.createBufferInfoFromArrays(gl, buildingData),
-    };
+  // Initialize buffers object first
+  buffers = {
+    road: twgl.createBufferInfoFromArrays(gl, roadData),
+    specialRoad: twgl.createBufferInfoFromArrays(gl, specialRoadData),
+    trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
+    building: twgl.createBufferInfoFromArrays(gl, buildingData),
+    car: twgl.createBufferInfoFromArrays(gl, trafficLightData) // Using trafficLight model for cars temporarily
+  };
 
-    // Configura la interfaz de usuario
-    setupUI();
-    // Renderiza la escena
-    render();
+  try {
+    const response = await fetch(`${agent_server_uri}/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ NAgents: 100 })
+    });
+
+    if (!response.ok) throw new Error('Failed to initialize simulation');
+    await updateSimulation();
+  } catch (error) {
+    console.error('Error initializing simulation:', error);
+  }
+
+  setupUI();
+  render();
 }
 
 // Función para dibujar carreteras
 function drawRoads(viewProjection) {
-    const roadBuffer = buffers.road;
-    const roads = objects.filter(obj => obj.type === "road");
-    roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection,objectColors.road));
+  const roadBuffer = buffers.road;
+  const roads = objects.filter(obj => obj.type === "road");
+  roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection, objectColors.road));
 }
 
 // Función para dibujar carreteras especiales
 function drawSpecialRoads(viewProjection) {
-    const specialRoadBuffer = buffers.specialRoad;
-    const specialRoads = objects.filter(obj => obj.type === "specialRoad");
-    specialRoads.forEach(specialRoad => drawObject(specialRoad, specialRoadBuffer, programInfo, viewProjection, objectColors.specialRoad));
+  const specialRoadBuffer = buffers.specialRoad;
+  const specialRoads = objects.filter(obj => obj.type === "specialRoad");
+  specialRoads.forEach(specialRoad => drawObject(specialRoad, specialRoadBuffer, programInfo, viewProjection, objectColors.specialRoad));
 }
 
 // Función para dibujar semáforos
 function drawTrafficLights(viewProjection) {
-    const lightBuffer = buffers.trafficLight;
-    const lights = objects.filter(obj => obj.type === "trafficLight");
-    lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight));
+  const lightBuffer = buffers.trafficLight;
+  const lights = objects.filter(obj => obj.type === "trafficLight");
+  lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight));
 }
 
 // Función para dibujar edificios
 function drawBuildings(viewProjection) {
-    const buildingBuffer = buffers.building;
-    const buildings = objects.filter(obj => obj.type === "building");
-    buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection,objectColors.building));
+  const buildingBuffer = buffers.building;
+  const buildings = objects.filter(obj => obj.type === "building");
+  buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection, objectColors.building));
 }
 
 /*
@@ -246,61 +281,71 @@ function drawCars(viewProjection) {
 */
 
 function render() {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
+  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
 
-    /*const camera = twgl.m4.lookAt(
-        [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-        [0, 0, 0],
-        [0, 1, 0]
-    );
-    */
+  const camera = twgl.m4.lookAt(
+    [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+    [cameraTarget.x, cameraTarget.y, cameraTarget.z],
+    [0, 1, 0]
+  );
 
-    const camera = twgl.m4.lookAt(
-        [cameraPosition.x, cameraPosition.y, cameraPosition.z], // Posición de la cámara
-        [cameraTarget.x, cameraTarget.y, cameraTarget.z],       // Objetivo de la cámara
-        [0, 1, 0]                                              // Vector "arriba"
-    );
+  const projection = twgl.m4.perspective(
+    Math.PI / 6,
+    gl.canvas.clientWidth / gl.canvas.clientHeight,
+    1,
+    1000
+  );
+  const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
 
-    const projection = twgl.m4.perspective(
-        Math.PI / 6,
-        gl.canvas.clientWidth / gl.canvas.clientHeight,
-        1,
-        1000
-    );
-    const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
+  gl.useProgram(programInfo.program);
 
-    gl.useProgram(programInfo.program);
+  // Draw static objects
+  drawRoads(viewProjection);
+  drawSpecialRoads(viewProjection);
+  drawBuildings(viewProjection);
+  drawTrafficLights(viewProjection);
 
-    drawRoads(viewProjection);
-    drawSpecialRoads(viewProjection);
-    drawBuildings(viewProjection);
-    drawTrafficLights(viewProjection);
-    
-    requestAnimationFrame(render);
+  // Draw dynamic objects
+  trafficLights.forEach(light => {
+    const color = light.state ? [0, 1, 0] : [1, 0, 0];
+    drawObject(light, buffers.trafficLight, programInfo, viewProjection, color);
+  });
+
+  cars.forEach(car => {
+    drawObject(car, buffers.car, programInfo, viewProjection, [0, 0, 1]);
+  });
+
+  // Update simulation
+  if (frameCount % 30 === 0) {
+    updateSimulation();
+  }
+  frameCount++;
+
+  requestAnimationFrame(render);
 }
 
-function drawObject(obj, bufferInfo, programInfo, viewProjection,color) {
-    const world = twgl.m4.identity();
-    twgl.m4.translate(world, obj.position, world);
-    twgl.m4.rotateY(world, obj.rotation[1], world);
-    twgl.m4.scale(world, obj.scale, world);
+function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
+  const world = twgl.m4.identity();
+  twgl.m4.translate(world, obj.position, world);
+  twgl.m4.rotateY(world, obj.rotation[1], world);
+  twgl.m4.scale(world, obj.scale, world);
 
-    const matrix = twgl.m4.multiply(viewProjection, world);
-    const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
+  const matrix = twgl.m4.multiply(viewProjection, world);
+  const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
 
-    twgl.setUniforms(programInfo, {
-        u_worldViewProjection: matrix,
-        u_world: world,
-        u_worldInverseTranspose: worldInverseTranspose,
-        u_lightDirection: lightDirection,
-        u_lightColor: lightColor,
-        u_objectColor: color,
-    });
+  twgl.setUniforms(programInfo, {
+    u_worldViewProjection: matrix,
+    u_world: world,
+    u_worldInverseTranspose: worldInverseTranspose,
+    u_lightDirection: lightDirection,
+    u_lightColor: lightColor,
+    u_objectColor: color,
+  });
 
-    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-    twgl.drawBufferInfo(gl, bufferInfo);
+  twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+  twgl.drawBufferInfo(gl, bufferInfo);
 }
 
 // Configura la interfaz gráfica
@@ -311,14 +356,14 @@ function setupUI() {
     gui.add(cameraPosition, 'y', -200, 300).name("Posición Y");
     gui.add(cameraPosition, 'z', -200, 300).name("Posición Z");
 
-    // Controles para mover el objetivo de la cámara
-    const targetFolder = gui.addFolder('Objetivo de Cámara');
-    gui.add(cameraTarget, 'x', -200, 200).name("Target X");
-    gui.add(cameraTarget, 'y', -200, 200).name("Target Y");
-    gui.add(cameraTarget, 'z', -200, 200).name("Target Z");
-    
-    cameraFolder.open();
-    targetFolder.open()
+  // Controles para mover el objetivo de la cámara
+  const targetFolder = gui.addFolder('Objetivo de Cámara');
+  gui.add(cameraTarget, 'x', -200, 200).name("Target X");
+  gui.add(cameraTarget, 'y', -200, 200).name("Target Y");
+  gui.add(cameraTarget, 'z', -200, 200).name("Target Z");
+
+  cameraFolder.open();
+  targetFolder.open()
 }
 
 // Inicia la aplicación
