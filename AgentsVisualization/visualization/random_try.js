@@ -124,9 +124,11 @@ class Object3D {
   }
 }
 
+let simulationInitialized = false;
 // Initialize the simulation
 async function initSimulation(nAgents) {
   try {
+    console.log('Initializing simulation with', nAgents, 'agents');
     const response = await fetch(`${agent_server_uri}/init`, {
       method: 'POST',
       headers: {
@@ -134,29 +136,51 @@ async function initSimulation(nAgents) {
       },
       body: JSON.stringify({ NAgents: nAgents })
     });
+    if (!response.ok) throw new Error('Failed to initialize simulation');
+    simulationInitialized = true;
+    console.log('Simulation initialized successfully');
     return await response.json();
   } catch (error) {
     console.error('Error initializing simulation:', error);
+    simulationInitialized = false;
   }
 }
 
+// Add check in stepSimulation
 async function stepSimulation() {
+  if (!simulationInitialized) {
+    console.log('Simulation not initialized, initializing now...');
+    await initSimulation(100);
+    return;
+  }
+
   try {
     const response = await fetch(`${agent_server_uri}/step`, {
       method: 'POST'
     });
-    if (!response.ok) throw new Error('Failed to step simulation');
+    if (!response.ok) {
+      simulationInitialized = false; // Reset if we get an error
+      throw new Error('Failed to step simulation');
+    }
     return await response.json();
   } catch (error) {
     console.error('Error stepping simulation:', error);
   }
 }
 // Get current state
+// Add check in getState
 async function getState() {
+  if (!simulationInitialized) {
+    console.log('Simulation not initialized, initializing now...');
+    await initSimulation(100);
+    return;
+  }
+
   try {
     console.log('Fetching state...');
     const response = await fetch(`${agent_server_uri}/state`);
     if (!response.ok) {
+      simulationInitialized = false; // Reset if we get an error
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
@@ -197,7 +221,7 @@ let objects = [];  // was const objects = []
 
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 34.6, y: 300, z: 27 };
-let cameraTarget = { x: 35.6, y: 200, z: 40.4 };     // Punto al que apunta la cámara
+let cameraTarget = { x: 34.8, y: 200, z: 40 };     // Punto al que apunta la cámara
 
 
 // Parámetros de iluminación direccional
@@ -321,15 +345,13 @@ async function main() {
   };
   console.log('Buffers initialized:', Object.keys(buffers));
 
-  // Initialize simulation before starting render loop
   try {
-    console.log('Initializing simulation...');
-    const initResponse = await initSimulation(100); // or whatever number of agents you want
-    console.log('Simulation initialized:', initResponse);
-
-    if (!initResponse) {
+    console.log('Starting initialization...');
+    await initSimulation(100);
+    if (!simulationInitialized) {
       throw new Error('Failed to initialize simulation');
     }
+    console.log('Initialization complete');
 
     setupUI();
     render();
@@ -376,12 +398,17 @@ function drawCars(viewProjection) {
 
 async function render() {
   try {
-    // Step the simulation
-    await stepSimulation();
+    if (!simulationInitialized) {
+      console.log('Simulation not initialized, retrying...');
+      await initSimulation(100);
+      if (!simulationInitialized) {
+        requestAnimationFrame(render);
+        return;
+      }
+    }
 
-    // Get current state
+    await stepSimulation();
     const state = await getState();
-    console.log('Raw state data:', state);  // Add this to see the raw data
 
     if (state && state.cars && state.traffic_lights) {
       // Remove all existing cars
@@ -392,54 +419,69 @@ async function render() {
       state.cars.forEach(carData => {
         // Log raw car data
         console.log('Raw car data:', carData);
+        console.log('Grid position:', {
+          x: carData.x,
+          y: carData.y,
+          z: carData.z
+        });
 
         // Convert Mesa coordinates to WebGL coordinates
+        // Invert both x and z
         const webGLPosition = [
-          carData.x * 5,      // Scale to match road grid
-          1,                  // Height above ground
-          -(carData.y * 5)    // Negative Z for Mesa Y, scaled to match
+          (carData.x * 5),      // Invert x
+          1,
+          (carData.z * 5)        // Invert z by removing negative sign
         ];
 
+        console.log('Mesa position:', { x: carData.x, y: carData.y });
         console.log('WebGL position:', webGLPosition);
 
-        const car = new Object3D('car', carData.id, webGLPosition, [0, 0, 0], [0.5, 0.5, 0.5]); // Made cars smaller
+        const car = new Object3D(
+          'car',
+          carData.id,
+          webGLPosition,
+          [0, 0, 0],
+          [0.5, 0.5, 0.5]  // Made cars smaller
+        );
         objects.push(car);
       });
+
+      // Regular WebGL rendering
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+
+      const camera = twgl.m4.lookAt(
+        [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+        [cameraTarget.x, cameraTarget.y, cameraTarget.z],
+        [0, 1, 0]
+      );
+
+      const projection = twgl.m4.perspective(
+        Math.PI / 6,
+        gl.canvas.clientWidth / gl.canvas.clientHeight,
+        1,
+        1000
+      );
+      const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
+
+      gl.useProgram(programInfo.program);
+
+      // Draw all objects
+      drawRoads(viewProjection);
+      drawSpecialRoads(viewProjection);
+      drawBuildings(viewProjection);
+      drawTrafficLights(viewProjection);
+      drawCars(viewProjection);
     }
 
-    // Regular WebGL rendering
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-
-    const camera = twgl.m4.lookAt(
-      [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-      [cameraTarget.x, cameraTarget.y, cameraTarget.z],
-      [0, 1, 0]
-    );
-
-    const projection = twgl.m4.perspective(
-      Math.PI / 6,
-      gl.canvas.clientWidth / gl.canvas.clientHeight,
-      1,
-      1000
-    );
-    const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
-
-    gl.useProgram(programInfo.program);
-
-    drawRoads(viewProjection);
-    drawSpecialRoads(viewProjection);
-    drawBuildings(viewProjection);
-    drawTrafficLights(viewProjection);
-    drawCars(viewProjection);
-
-    // Add a small delay before the next frame to slow down the simulation
+    // Add a small delay to avoid overwhelming the server
     await new Promise(resolve => setTimeout(resolve, 100));
 
     requestAnimationFrame(render);
   } catch (error) {
     console.error('Error in render loop:', error);
+    simulationInitialized = false; // Reset on error
     requestAnimationFrame(render);
   }
 }
