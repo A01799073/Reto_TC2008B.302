@@ -218,8 +218,8 @@ let gl, programInfo, buffers;
 let objects = [];  // was const objects = []
 
 // Define la posición inicial de la cámara
-let cameraPosition = { x: 34.6, y: 300, z: 27 };
-let cameraTarget = { x: 34.8, y: 200, z: 40 };     // Punto al que apunta la cámara
+let cameraPosition = { x: 80, y: 322, z: 77 };
+let cameraTarget = { x: 80, y: -8000, z: -46 };     // Punto al que apunta la cámara
 
 
 // Parámetros de iluminación direccional
@@ -519,16 +519,16 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
 // Configura la interfaz gráfica
 function setupUI() {
   const gui = new GUI();
-  const cameraFolder = gui.addFolder('Controles de Cámara');
-  gui.add(cameraPosition, 'x', -200, 200).name("Posición X");
-  gui.add(cameraPosition, 'y', -200, 300).name("Posición Y");
-  gui.add(cameraPosition, 'z', -200, 300).name("Posición Z");
+  const cameraFolder = gui.addFolder('Controles de CáFmara');
+  gui.add(cameraPosition, 'x', -500, 500).name("Posición X");
+  gui.add(cameraPosition, 'y', -500, 500).name("Posición Y");
+  gui.add(cameraPosition, 'z', -500, 500).name("Posición Z");
 
   // Controles para mover el objetivo de la cámara
   const targetFolder = gui.addFolder('Objetivo de Cámara');
-  gui.add(cameraTarget, 'x', -200, 200).name("Target X");
-  gui.add(cameraTarget, 'y', -200, 200).name("Target Y");
-  gui.add(cameraTarget, 'z', -200, 200).name("Target Z");
+  gui.add(cameraTarget, 'x', -500, 500).name("Target X");
+  gui.add(cameraTarget, 'y', -8000, 8000).name("Target Y");
+  gui.add(cameraTarget, 'z', -500, 500).name("Target Z");
 
   cameraFolder.open();
   targetFolder.open()
