@@ -157,12 +157,12 @@ function processMap() {
             const x = col * size;
             const z = row * size;
 
-            if (char === 'v') {
-                objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z]));
+            if (char === 'v' || char=== '<' || char=== '>'|| char === '^') {
+                objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
             } else if (char === '#') {
-                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.5, 2, 0.5]));
+                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
             } else if (char === 'S' || char === 's') {
-                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.5, 0.5, 0.5]));
+                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.7, 0.5, 0.7]));
             }
         });
     });
@@ -223,39 +223,7 @@ function drawBuildings(viewProjection) {
     buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
 }
 
-/*
-// Renderiza la escena
-function render(time = 0) {
-    time *= 0.001; // Convierte el tiempo a segundos
 
-    // Configura el color de fondo del canvas
-    gl.clearColor(0.3, 0.3, 0.3, 1.0); // Cambia el fondo a un gris oscuro
-    // Limpia el canvas
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-
-    // Configuración de la cámara y la proyección
-    const camera = twgl.m4.lookAt(
-        [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-        [0, 0, 0],
-        [0, 1, 0]
-    );
-    const projection = twgl.m4.perspective(
-        Math.PI / 4,
-        gl.canvas.clientWidth / gl.canvas.clientHeight,
-        0.5,
-        1000
-    );
-    const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
-
-    gl.useProgram(programInfo.program); // Asegura que se está usando el programa correcto
-
-//   drawRoads(viewProjection);
-    drawBuildings(viewProjection);
-//    drawTrafficLights(viewProjection);
-    requestAnimationFrame(render);
-}
-*/
 function render() {
     gl.clearColor(0.3, 0.3, 0.3, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -269,7 +237,7 @@ function render() {
     const projection = twgl.m4.perspective(
         Math.PI / 4,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
-        5,
+        0.5,
         1000
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
@@ -303,9 +271,9 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection) {
 // Configura la interfaz gráfica
 function setupUI() {
     const gui = new GUI();
-    gui.add(cameraPosition, 'x', -100, 100).name("Posición X");
-    gui.add(cameraPosition, 'y', -100, 100).name("Posición Y");
-    gui.add(cameraPosition, 'z', -100, 100).name("Posición Z");
+    gui.add(cameraPosition, 'x', -200, 200).name("Posición X");
+    gui.add(cameraPosition, 'y', -200, 200).name("Posición Y");
+    gui.add(cameraPosition, 'z', -200, 200).name("Posición Z");
 }
 
 // Inicia la aplicación
