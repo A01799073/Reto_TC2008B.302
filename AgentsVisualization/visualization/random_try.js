@@ -7,6 +7,7 @@ import { GUI } from 'lil-gui';
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
 import buildModel from './3D_models/Simple_Funcionales/buildnew.obj?raw';
+import carModel from './3D_models/Auto/car.obj.?raw';
 
 // Vertex Shader
 const vsGLSL = `#version 300 es
@@ -61,7 +62,7 @@ let gl, programInfo, buffers;
 const objects = [];
 
 // Define la posición inicial de la cámara
-let cameraPosition = { x: 0, y: 10, z: 10 };
+let cameraPosition = { x: 50, y: 50, z: 50 };
 
 // Representación del mapa como una variable
 const mapData = `
@@ -223,6 +224,13 @@ function drawBuildings(viewProjection) {
     buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
 }
 
+/*
+//función para dibujar carros
+function drawCars(viewProjection) {
+    const carBuffer = buffers.trafficLight;
+    const cars = objects.filter(obj => obj.type === "car");
+    lights.forEach(light => drawObject(car, carBufferBuffer, programInfo, viewProjection));
+*/
 
 function render() {
     gl.clearColor(0.3, 0.3, 0.3, 1.0);
@@ -235,10 +243,10 @@ function render() {
         [0, 1, 0]
     );
     const projection = twgl.m4.perspective(
-        Math.PI / 4,
+        Math.PI / 6,
         gl.canvas.clientWidth / gl.canvas.clientHeight,
-        0.5,
-        1000
+        3,
+        400
     );
     const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
 
