@@ -63,6 +63,35 @@ const objects = [];
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 0, y: 10, z: 10 };
 
+// Representación del mapa como una variable
+const mapData = `
+v<<<<<<<<<<<<<<<<<s<<<<<
+v<<<<<<<<<<<<<<<<<s<<<<^
+vv#D#########vv#SS###D^^
+vv###########vv#^^####^^
+vv##########Dvv#^^D###^^
+vv#D#########vv#^^####^^
+vv<<<<<<s<<<<vv#^^####^^
+vv<<<<<<s<<<<vv#^^####^^
+vv####SS#####vv#^^####^^
+vvD##D^^####Dvv#^^####^^
+vv####^^#####vv#^^D###^^
+SS####^^#####vv#^^####^^
+vvs<<<<<<<<<<<<<<<<<<<<<
+vvs<<<<<<<<<<<<<<<<<<<<<
+vv##########vv###^^###^^
+vv>>>>>>>>>>>>>>>>>>>s^^
+vv>>>>>>>>>>>>>>>>>>>s^^
+vv####vv##D##vv#^^####SS
+vv####vv#####vv#^^####^^
+vv####vv#####vv#^^###D^^
+vv###Dvv####Dvv#^^####^^
+vv####vv#####vv#^^####^^
+vv####SS#####SS#^^#D##^^
+v>>>>s>>>>>>s>>>>>>>>>>^
+>>>>>s>>>>>>s>>>>>>>>>>^
+`;
+
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
     const positions = [];
@@ -118,13 +147,11 @@ function parseOBJ(objText) {
     };
 }
 
-// Función para cargar el mapa y procesarlo
-async function loadMap(mapPath) {
-    const response = await fetch(mapPath);
-    const mapText = await response.text();
-    const lines = mapText.split('\n');
+// Procesa el mapa para crear los objetos
+function processMap() {
+    const lines = mapData.trim().split('\n');
+    const size = 5; // Tamaño de cada celda en la cuadrícula
 
-    const size = 2; // Tamaño de cada celda en la cuadrícula
     lines.forEach((line, row) => {
         [...line].forEach((char, col) => {
             const x = col * size;
@@ -133,9 +160,9 @@ async function loadMap(mapPath) {
             if (char === 'v') {
                 objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z]));
             } else if (char === '#') {
-                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [1, 2, 1]));
+                objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.5, 2, 0.5]));
             } else if (char === 'S' || char === 's') {
-                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z]));
+                objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.5, 0.5, 0.5]));
             }
         });
     });
@@ -159,52 +186,44 @@ async function main() {
     const trafficLightData = parseOBJ(trafficLightModel);
     const buildingData = parseOBJ(buildModel);
 
-    //------Sí corren los datos------
-    //console.log('Datos de carretera:', roadData);
-    //console.log('Datos del semáforo:', trafficLightData);
-
-    // Cargar mapa
-    await loadMap('./city_files/2022_base.txt');
+    //Mapa
+    processMap();
 
     // Crea los buffers solo después de inicializar WebGL
     buffers = {
-        //road: twgl.createBufferInfoFromArrays(gl, roadData),
-        //trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
+        road: twgl.createBufferInfoFromArrays(gl, roadData),
+        trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
         building: twgl.createBufferInfoFromArrays(gl, buildingData),
     };
 
-    objects.push(new Object3D('building', 'building1', [0, 0, 0]));
-
     // Configura la interfaz de usuario
     setupUI();
-
     // Renderiza la escena
     render();
 }
-/*
+
 // Función para dibujar carreteras
 function drawRoads(viewProjection) {
     const roadBuffer = buffers.road;
-    objects
-        .filter(obj => obj.type === "road")
-        .forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection));
+    const roads = objects.filter(obj => obj.type === "road");
+    roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection));
 }
 
 // Función para dibujar semáforos
 function drawTrafficLights(viewProjection) {
     const lightBuffer = buffers.trafficLight;
-    objects
-        .filter(obj => obj.type === "trafficLight")
-        .forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
+    const lights = objects.filter(obj => obj.type === "trafficLight");
+    lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
 }
-*/
+
 // Función para dibujar edificios
 function drawBuildings(viewProjection) {
     const buildingBuffer = buffers.building;
-    objects
-        .filter(obj => obj.type === "building")
-        .forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
+    const buildings = objects.filter(obj => obj.type === "building");
+    buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
 }
+
+/*
 // Renderiza la escena
 function render(time = 0) {
     time *= 0.001; // Convierte el tiempo a segundos
@@ -236,7 +255,33 @@ function render(time = 0) {
 //    drawTrafficLights(viewProjection);
     requestAnimationFrame(render);
 }
+*/
+function render() {
+    gl.clearColor(0.3, 0.3, 0.3, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
 
+    const camera = twgl.m4.lookAt(
+        [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+        [0, 0, 0],
+        [0, 1, 0]
+    );
+    const projection = twgl.m4.perspective(
+        Math.PI / 4,
+        gl.canvas.clientWidth / gl.canvas.clientHeight,
+        5,
+        1000
+    );
+    const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
+
+    gl.useProgram(programInfo.program);
+
+    drawRoads(viewProjection);
+    drawBuildings(viewProjection);
+    drawTrafficLights(viewProjection);
+
+    requestAnimationFrame(render);
+}
 
 function drawObject(obj, bufferInfo, programInfo, viewProjection) {
     const world = twgl.m4.identity();
