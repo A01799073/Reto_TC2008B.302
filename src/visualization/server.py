@@ -1,5 +1,5 @@
 # src/visualization/server.py
-from mesa.visualization.modules import CanvasGrid, ChartModule
+from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.UserParam import Slider
 from ..model.city_model import CityModel
@@ -58,6 +58,14 @@ def agent_portrayal(agent):
     return portrayal
 
 
+class CarInfoElement(TextElement):
+    def __init__(self):
+        pass
+
+    def render(self, model):
+        current_cars = len([agent for agent in model.schedule.agents if isinstance(agent, Car)])
+        return f"Current Cars: {current_cars} / Maximum Cars: {model.num_agents}"
+
 def create_server():
     # Get grid dimensions from the map file
     with open("city_files/2022_base.txt") as baseFile:
@@ -66,30 +74,27 @@ def create_server():
         height = len(lines)
 
     grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
-
+    car_info = CarInfoElement()
     traffic_chart = ChartModule(
         [
-            {"Label": "Car_Count", "Color": "#FF0000"},
             {"Label": "Average_Speed", "Color": "#00FF00"},
+            {"Label": "Stopped_Cars", "Color": "#FF00FF"},
         ]
     )
-
     density_chart = ChartModule(
         [
             {"Label": "Traffic_Density", "Color": "#0000FF"},
-            {"Label": "Stopped_Cars", "Color": "#FF00FF"},
         ]
     )
 
     model_params = {
-        "N": Slider("Number of Cars", 1, 1, 50, 1),
+        "N": Slider("Number of Cars", 100, 1, 150, 1),
     }
 
     server = ModularServer(
         CityModel,
-        [grid, traffic_chart, density_chart],
+        [car_info, grid, traffic_chart, density_chart],
         "Traffic Simulation",
         model_params,
     )
-
     return server

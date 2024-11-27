@@ -152,26 +152,20 @@ class CityModel(Model):
     ###################
 
     def spawn_initial_cars(self):
-        """Spawn initial cars at valid spawn points with unique IDs"""
+        """Spawn a few initial cars at valid spawn points"""
         spawn_points = self.find_spawn_points()
         if not spawn_points:
             print("Warning: No valid corner spawn points found")
             return
 
-        cars_per_spawn = self.num_agents // len(spawn_points)
-        extra_cars = self.num_agents % len(spawn_points)
-
-        # Keep track of the global car ID
-        car_id = 0
-
-        for spawn_point_idx, spawn_point in enumerate(spawn_points):
-            cars_to_spawn = cars_per_spawn + (1 if extra_cars > spawn_point_idx else 0)
-            for _ in range(cars_to_spawn):
-                # Use the global car_id instead of loop index
-                car = Car(f"car_{car_id}", self)
-                self.grid.place_agent(car, spawn_point)
-                self.schedule.add(car)
-                car_id += 1  # Increment the global car ID
+        # Only spawn up to 4 initial cars
+        initial_cars = min(4, self.num_agents)
+        
+        for i in range(initial_cars):
+            spawn_point = spawn_points[i % len(spawn_points)]
+            car = Car(f"car_{i}", self)
+            self.grid.place_agent(car, spawn_point)
+            self.schedule.add(car)
 
     def find_spawn_points(self):
         corner_checks = [
@@ -276,9 +270,10 @@ class CityModel(Model):
     def initialize_data_collector(self):
         self.datacollector = DataCollector(
             model_reporters={
-                "Car_Count": lambda m: len(
+                "Current_Car_Count": lambda m: len(
                     [agent for agent in m.schedule.agents if isinstance(agent, Car)]
                 ),
+                "Max_Car_Count": lambda m: float(m.num_agents),  # Convert to float for graphing
                 "Average_Speed": self.calculate_average_speed,
                 "Traffic_Density": self.calculate_traffic_density,
                 "Stopped_Cars": self.count_stopped_cars,
