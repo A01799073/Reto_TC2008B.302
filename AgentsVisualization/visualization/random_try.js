@@ -140,13 +140,31 @@ async function initSimulation(nAgents) {
   }
 }
 
+async function stepSimulation() {
+  try {
+    const response = await fetch(`${agent_server_uri}/step`, {
+      method: 'POST'
+    });
+    if (!response.ok) throw new Error('Failed to step simulation');
+    return await response.json();
+  } catch (error) {
+    console.error('Error stepping simulation:', error);
+  }
+}
 // Get current state
 async function getState() {
   try {
+    console.log('Fetching state...');
     const response = await fetch(`${agent_server_uri}/state`);
-    return await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log('State data received:', data);
+    return data;
   } catch (error) {
     console.error('Error getting state:', error);
+    return null;
   }
 }
 
@@ -175,7 +193,7 @@ const agent_server_uri = "http://localhost:8585";
 let gl, programInfo, buffers;
 
 // Arrays para almacenar objetos en la escena
-const objects = [];
+let objects = [];  // was const objects = []
 
 // Define la posición inicial de la cámara
 let cameraPosition = { x: 34.6, y: 300, z: 27 };
@@ -190,7 +208,7 @@ const objectColors = {
   specialRoad: [1.0, 1.0, 0.0],
   building: [0.0, 0.0, 0.8],
   trafficLight: [0.8, 0.2, 0.2],
-  car: [0.2, 0.2, 0.8], // Add car color (blue in this case)
+  car: [1.0, 0.0, 0.0], // Bright red for better visibility
 };
 
 // Función para parsear archivos OBJ
@@ -293,17 +311,6 @@ async function main() {
   //Mapa
   processMap();
 
-  // Add a test car at origin
-  const testCar = new Object3D(
-    'car',
-    'test-car',
-    [0, 1, -30], // [x, y, z] where z is negative Mesa y
-    [0, 0, 0],
-    [1, 1, 1]
-  );
-  objects.push(testCar);
-  console.log('Added test car:', testCar);
-
   // Initialize buffers object first
   buffers = {
     road: twgl.createBufferInfoFromArrays(gl, roadData),
@@ -314,8 +321,21 @@ async function main() {
   };
   console.log('Buffers initialized:', Object.keys(buffers));
 
-  setupUI();
-  render();
+  // Initialize simulation before starting render loop
+  try {
+    console.log('Initializing simulation...');
+    const initResponse = await initSimulation(100); // or whatever number of agents you want
+    console.log('Simulation initialized:', initResponse);
+
+    if (!initResponse) {
+      throw new Error('Failed to initialize simulation');
+    }
+
+    setupUI();
+    render();
+  } catch (error) {
+    console.error('Error during initialization:', error);
+  }
 }
 
 // Función para dibujar carreteras
@@ -355,38 +375,73 @@ function drawCars(viewProjection) {
 */
 
 async function render() {
-  // Regular WebGL rendering
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST);
+  try {
+    // Step the simulation
+    await stepSimulation();
 
-  const camera = twgl.m4.lookAt(
-    [cameraPosition.x, cameraPosition.y, cameraPosition.z],
-    [cameraTarget.x, cameraTarget.y, cameraTarget.z],
-    [0, 1, 0]
-  );
+    // Get current state
+    const state = await getState();
+    console.log('Raw state data:', state);  // Add this to see the raw data
 
-  const projection = twgl.m4.perspective(
-    Math.PI / 6,
-    gl.canvas.clientWidth / gl.canvas.clientHeight,
-    1,
-    1000
-  );
-  const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
+    if (state && state.cars && state.traffic_lights) {
+      // Remove all existing cars
+      const nonCarObjects = objects.filter(obj => obj.type !== 'car');
+      objects.length = 0;
+      objects.push(...nonCarObjects);
 
-  gl.useProgram(programInfo.program);
+      state.cars.forEach(carData => {
+        // Log raw car data
+        console.log('Raw car data:', carData);
 
-  // Draw all objects
-  drawRoads(viewProjection);
-  drawSpecialRoads(viewProjection);
-  drawBuildings(viewProjection);
-  drawTrafficLights(viewProjection);
+        // Convert Mesa coordinates to WebGL coordinates
+        const webGLPosition = [
+          carData.x * 5,      // Scale to match road grid
+          1,                  // Height above ground
+          -(carData.y * 5)    // Negative Z for Mesa Y, scaled to match
+        ];
 
-  // Log before drawing cars
-  console.log('About to draw cars');
-  drawCars(viewProjection);
+        console.log('WebGL position:', webGLPosition);
 
-  requestAnimationFrame(render);
+        const car = new Object3D('car', carData.id, webGLPosition, [0, 0, 0], [0.5, 0.5, 0.5]); // Made cars smaller
+        objects.push(car);
+      });
+    }
+
+    // Regular WebGL rendering
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);
+
+    const camera = twgl.m4.lookAt(
+      [cameraPosition.x, cameraPosition.y, cameraPosition.z],
+      [cameraTarget.x, cameraTarget.y, cameraTarget.z],
+      [0, 1, 0]
+    );
+
+    const projection = twgl.m4.perspective(
+      Math.PI / 6,
+      gl.canvas.clientWidth / gl.canvas.clientHeight,
+      1,
+      1000
+    );
+    const viewProjection = twgl.m4.multiply(projection, twgl.m4.inverse(camera));
+
+    gl.useProgram(programInfo.program);
+
+    drawRoads(viewProjection);
+    drawSpecialRoads(viewProjection);
+    drawBuildings(viewProjection);
+    drawTrafficLights(viewProjection);
+    drawCars(viewProjection);
+
+    // Add a small delay before the next frame to slow down the simulation
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    requestAnimationFrame(render);
+  } catch (error) {
+    console.error('Error in render loop:', error);
+    requestAnimationFrame(render);
+  }
 }
 
 // Add drawCars function (similar to your other draw functions)
