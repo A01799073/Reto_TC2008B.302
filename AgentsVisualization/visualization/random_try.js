@@ -50,13 +50,11 @@ void main() {
     // Color final combinando luz y color base
     vec3 diffuse = diff * u_lightColor * u_objectColor;
 
-    //outColor = vec4(diffuse, 1.0);
     // Mezcla con un término ambiental para iluminar sombras
     vec3 ambient = 0.2 * u_objectColor;
 
     outColor = vec4(diffuse + ambient, 1.0); // Combina difusión y luz ambiental
-    //float light = max(dot(normal, lightDir), 0.0);
-    //outColor = vec4(vec3(0.7, 0.7, 0.7) * light, 1);
+
 }
 `;
 
@@ -88,9 +86,9 @@ let cameraPosition = { x: 50, y: 50, z: 50 };
 const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
 const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
 const objectColors = {
-    road: [0.3, 0.3, 0.3], // Gris para carreteras
-    building: [0.5, 0.5, 0.8], // Azul claro para edificios
-    //trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
+    road: [0.8, 0.8, 0.8], // Gris claro para carreteras
+    building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
+    trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
 };
 // Representación del mapa como una variable
 const mapData = `
@@ -186,8 +184,8 @@ function processMap() {
         [...line].forEach((char, col) => {
             const x = col * size;
             const z = row * size;
-
-            if (char === 'v' || char=== '<' || char=== '>'|| char === '^') {
+            //Agregar un road diferente para las destino?
+            if (char === 'v' || char=== '<' || char=== '>'|| char === '^' ) {
                 objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
             } else if (char === '#') {
                 objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
@@ -231,21 +229,21 @@ async function main() {
 function drawRoads(viewProjection) {
     const roadBuffer = buffers.road;
     const roads = objects.filter(obj => obj.type === "road");
-    roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection));
+    roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection,objectColors.road));
 }
 
 // Función para dibujar semáforos
 function drawTrafficLights(viewProjection) {
     const lightBuffer = buffers.trafficLight;
     const lights = objects.filter(obj => obj.type === "trafficLight");
-    lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection));
+    lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight));
 }
 
 // Función para dibujar edificios
 function drawBuildings(viewProjection) {
     const buildingBuffer = buffers.building;
     const buildings = objects.filter(obj => obj.type === "building");
-    buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection));
+    buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection,objectColors.building));
 }
 
 /*
@@ -257,7 +255,7 @@ function drawCars(viewProjection) {
 */
 
 function render() {
-    gl.clearColor(0.3, 0.3, 0.3, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
 
@@ -276,17 +274,10 @@ function render() {
 
     gl.useProgram(programInfo.program);
 
-    //drawRoads(viewProjection);
-    //drawBuildings(viewProjection);
-    //drawTrafficLights(viewProjection);
-    objects.forEach(obj => {
-        const bufferInfo = buffers[obj.type];
-        const color = objectColors[obj.type];
-        if (bufferInfo && color) {
-            drawObject(obj, bufferInfo, programInfo, viewProjection, color);
-        }
-    });    
-
+    drawRoads(viewProjection);
+    drawBuildings(viewProjection);
+    drawTrafficLights(viewProjection);
+    
     requestAnimationFrame(render);
 }
 
