@@ -5,6 +5,7 @@ import { GUI } from 'lil-gui';
 
 // Modelos 3D
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
+import specialModel from './3D_models/Simple_Funcionales/specialroad.obj?raw'
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
 import buildModel from './3D_models/Simple_Funcionales/buildnew.obj?raw';
 //import carModel from './3D_models/Auto/car.obj.?raw';
@@ -40,7 +41,6 @@ out vec4 outColor;
 
 void main() {
     vec3 normal = normalize(v_normal);
-    //vec3 lightDir = normalize(vec3(1, 1, 1));
     vec3 lightDir = normalize(u_lightDirection); // Usa la dirección de luz uniforme
 
 
@@ -87,6 +87,7 @@ const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
 const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
 const objectColors = {
     road: [0.8, 0.8, 0.8], // Gris claro para carreteras
+    specialRoad: [1.0,1.0,0.0], // Amarillo para lasa carreteras de destino "D"
     building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
     trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
 };
@@ -187,6 +188,8 @@ function processMap() {
             //Agregar un road diferente para las destino?
             if (char === 'v' || char=== '<' || char=== '>'|| char === '^' ) {
                 objects.push(new Object3D('road', `road-${row}-${col}`, [x, 0, z],));
+            } else if (char === 'D') {
+                objects.push(new Object3D('specialRoad', `specialRoad-${row}-${col}`, [x, 0, z]));
             } else if (char === '#') {
                 objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
             } else if (char === 'S' || char === 's') {
@@ -206,6 +209,7 @@ async function main() {
 
     // Procesa los modelos OBJ
     const roadData = parseOBJ(roadModel);
+    const specialRoadData = parseOBJ(specialModel);
     const trafficLightData = parseOBJ(trafficLightModel);
     const buildingData = parseOBJ(buildModel);
 
@@ -215,6 +219,7 @@ async function main() {
     // Crea los buffers solo después de inicializar WebGL
     buffers = {
         road: twgl.createBufferInfoFromArrays(gl, roadData),
+        specialRoad: twgl.createBufferInfoFromArrays(gl, specialRoadData),
         trafficLight: twgl.createBufferInfoFromArrays(gl, trafficLightData),
         building: twgl.createBufferInfoFromArrays(gl, buildingData),
     };
@@ -230,6 +235,13 @@ function drawRoads(viewProjection) {
     const roadBuffer = buffers.road;
     const roads = objects.filter(obj => obj.type === "road");
     roads.forEach(road => drawObject(road, roadBuffer, programInfo, viewProjection,objectColors.road));
+}
+
+// Función para dibujar carreteras especiales
+function drawSpecialRoads(viewProjection) {
+    const specialRoadBuffer = buffers.specialRoad;
+    const specialRoads = objects.filter(obj => obj.type === "specialRoad");
+    specialRoads.forEach(specialRoad => drawObject(specialRoad, specialRoadBuffer, programInfo, viewProjection, objectColors.specialRoad));
 }
 
 // Función para dibujar semáforos
@@ -275,6 +287,7 @@ function render() {
     gl.useProgram(programInfo.program);
 
     drawRoads(viewProjection);
+    drawSpecialRoads(viewProjection);
     drawBuildings(viewProjection);
     drawTrafficLights(viewProjection);
     

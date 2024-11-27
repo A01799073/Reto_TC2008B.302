@@ -32,7 +32,7 @@ python agentsServer/agents_server.py
 ## Running the WebGL application
 
 - Move to the `visualization` folder.
-- Make sure that you installed the dependencies with `npm i`.
+- Make sure that you installed the depoendencies with `npm i`.
 - Run the vite server:
 
 ```
