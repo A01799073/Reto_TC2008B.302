@@ -132,6 +132,7 @@ function parseOBJ(objText) {
         }
     });
 
+    // Estructura requerida para graficar en
     return {
         a_position: {
             numComponents: 3,
