@@ -3,11 +3,14 @@
 import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
+// Text
+import mapData from '../../city_files/2022_base.txt?raw'
+
 // Modelos 3D
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
 import specialModel from './3D_models/Simple_Funcionales/specialroad.obj?raw'
 import trafficLightModel from './3D_models/Simple_Funcionales/semaforo_cuadrado.obj?raw';
-import buildModel from './3D_models/Simple_Funcionales/buildnew.obj?raw';
+import buildModel from './3D_models/Simple_Funcionales/build.newobj.obj?raw';
 //import carModel from './3D_models/Auto/car.obj.?raw';
 
 // Vertex Shadeor
@@ -91,34 +94,6 @@ const objectColors = {
     building: [0.0, 0.0, 0.8], // Azul fuerte para edificios
     trafficLight: [0.8, 0.2, 0.2], // Rojo para semáforos
 };
-// Representación del mapa como una variable
-const mapData = `
-v<<<<<<<<<<<<<<<<<s<<<<<
-v<<<<<<<<<<<<<<<<<s<<<<^
-vv#D#########vv#SS###D^^
-vv###########vv#^^####^^
-vv##########Dvv#^^D###^^
-vv#D#########vv#^^####^^
-vv<<<<<<s<<<<vv#^^####^^
-vv<<<<<<s<<<<vv#^^####^^
-vv####SS#####vv#^^####^^
-vvD##D^^####Dvv#^^####^^
-vv####^^#####vv#^^D###^^
-SS####^^#####vv#^^####^^
-vvs<<<<<<<<<<<<<<<<<<<<<
-vvs<<<<<<<<<<<<<<<<<<<<<
-vv##########vv###^^###^^
-vv>>>>>>>>>>>>>>>>>>>s^^
-vv>>>>>>>>>>>>>>>>>>>s^^
-vv####vv##D##vv#^^####SS
-vv####vv#####vv#^^####^^
-vv####vv#####vv#^^###D^^
-vv###Dvv####Dvv#^^####^^
-vv####vv#####vv#^^####^^
-vv####SS#####SS#^^#D##^^
-v>>>>s>>>>>>s>>>>>>>>>>^
->>>>>s>>>>>>s>>>>>>>>>>^
-`;
 
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
@@ -146,7 +121,7 @@ function parseOBJ(objText) {
             const faceIndices = [];
             face.forEach(part => {
 
-                const [posIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
+                const [posIndex, texIndex, normIndex] = part.split('/').map(i => parseInt(i, 10) - 1);
                 positionData.push(...positions.slice(posIndex * 3, posIndex * 3 + 3));
                 normalData.push(...normals.slice(normIndex * 3, normIndex * 3 + 3));
                 faceIndices.push(positionData.length / 3 - 1);
@@ -203,6 +178,8 @@ function processMap() {
 async function main() {
     const canvas = document.querySelector('canvas');
     gl = canvas.getContext('webgl2');
+    twgl.resizeCanvasToDisplaySize(gl.canvas);
+    gl.viewport(0,0,gl.canvas.clientWidth,gl.canvas.clientHeight)
 
     // Programa de shaders
     programInfo = twgl.createProgramInfo(gl, [vsGLSL, fsGLSL]);
