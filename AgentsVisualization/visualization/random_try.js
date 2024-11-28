@@ -3,12 +3,8 @@
 import * as twgl from 'twgl.js'; // Librería para el manejo de WebGL
 import { GUI } from 'lil-gui';
 
-// Text
+// Importación del mapa
 import mapData from '../../city_files/2022_base.txt?raw'
-
-let cars = [];
-let trafficLights = [];
-let frameCount = 0;
 
 // Modelos 3D
 import roadModel from './3D_models/Simple_Funcionales/roadnew.obj?raw';
@@ -90,6 +86,42 @@ void main() {
     outColor = vec4(totalLighting, 1.0);
 }
 `;
+
+// Variables
+let cars = [];
+let trafficLights = [];
+let frameCount = 0;
+
+// Define el URI del servidor para agentes (si lo necesitas más adelante)
+const agent_server_uri = "http://localhost:8585";
+
+// Variables relacionadas con WebGL
+let gl, programInfo, buffers;
+
+// Arrays para almacenar objetos en la escena
+let objects = [];  // was const objects = []
+
+// Define la posición inicial de la cámara
+let cameraPosition = { x: 80, y: 322, z: 77 };
+let cameraTarget = { x: 80, y: -8000, z: -46 };     // Punto al que apunta la cámara
+
+
+// Parámetros de iluminación direccional
+const lightDirection = [1, 1, 0]; // Dirección de la luz (simulando el sol)- amanecer
+/*
+  Si quieres simular un atardecer es = [-1,1,0]
+  Si quieres simular el medio día es = [0,-1,0]
+*/
+
+let lightColor = [1.0, 1.0, 1.0]; // Luz inicial /tono cálido
+
+const objectColors = {
+  road: [0.4, 0.4, 0.6],
+  specialRoad: [1.0, 1.0, 0.0],
+  building: [0.0, 0.0, 0.8],
+  trafficLight: [1, 1, 1],
+  car: [1.0, 0.0, 0.0], // Bright red for better visibility
+};
 
 function createCubeData() {
   return {
@@ -236,36 +268,6 @@ async function updateSimulation() {
     console.error('Error updating simulation:', error);
   }
 }
-// Define el URI del servidor para agentes (si lo necesitas más adelante)
-const agent_server_uri = "http://localhost:8585";
-
-// Variables relacionadas con WebGL
-let gl, programInfo, buffers;
-
-// Arrays para almacenar objetos en la escena
-let objects = [];  // was const objects = []
-
-// Define la posición inicial de la cámara
-let cameraPosition = { x: 80, y: 322, z: 77 };
-let cameraTarget = { x: 80, y: -8000, z: -46 };     // Punto al que apunta la cámara
-
-
-// Parámetros de iluminación direccional
-const lightDirection = [1, 1, 0]; // Dirección de la luz (simulando el sol)- amanecer
-/*
-  Si quieres simular un atardecer es = [-1,1,0]
-  Si quieres simular el medio día es = [0,-1,0]
-*/
-
-let lightColor = [1.0, 1.0, 1.0]; // Luz inicial /tono cálido
-
-const objectColors = {
-  road: [0.4, 0.4, 0.6],
-  specialRoad: [1.0, 1.0, 0.0],
-  building: [0.0, 0.0, 0.8],
-  trafficLight: [1, 1, 1],
-  car: [1.0, 0.0, 0.0], // Bright red for better visibility
-};
 
 // Función para parsear archivos OBJ
 function parseOBJ(objText) {
@@ -441,6 +443,60 @@ function drawBuildings(viewProjection) {
   buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection, objectColors.building));
 }
 
+
+// Add drawCars function (similar to your other draw functions)
+function drawCars(viewProjection) {
+  if (!buffers.car) {
+    console.error('Car buffer is missing');
+    return;
+  }
+
+  const cars = objects.filter(obj => obj.type === "car");
+
+  cars.forEach(car => {
+    drawObject(car, buffers.car, programInfo, viewProjection, objectColors.car);
+  });
+}
+
+
+function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
+  const world = twgl.m4.identity();
+  twgl.m4.translate(world, obj.position, world);
+  twgl.m4.rotateY(world, obj.rotation[1], world);
+  twgl.m4.scale(world, obj.scale, world);
+
+  const matrix = twgl.m4.multiply(viewProjection, world);
+  const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
+
+  // Modify color for traffic lights based on state
+  let finalColor = color;
+  if (obj.type === 'trafficLight' && obj.state !== undefined) {
+    console.log('Traffic light state:', obj.state); // Verifica el estado del semáforo
+    finalColor = obj.state ? [0.0, 0.8, 0.0] : [0.8, 0.0, 0.0]; // Green when true, red when false
+  }
+
+  // Si el objeto es una fuente de luz (point light), asignamos la luz correspondiente
+  if (obj.isPointLight) {
+    // Cambiar para agregar un punto de luz (point light) que afecte a la escena
+    twgl.setUniforms(programInfo, {
+      u_pointLightPosition: obj.position,  // Posición del punto de luz
+      u_lightColor: finalColor,            // Color de la luz del semáforo
+    });
+  }
+
+  twgl.setUniforms(programInfo, {
+    u_worldViewProjection: matrix,
+    u_world: world,
+    u_worldInverseTranspose: worldInverseTranspose,
+    u_lightDirection: lightDirection,
+    u_lightColor: lightColor,
+    u_objectColor: finalColor,
+  });
+
+  twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+  twgl.drawBufferInfo(gl, bufferInfo);
+}
+
 async function render() {
   try {
     if (!simulationInitialized) {
@@ -545,59 +601,6 @@ async function render() {
     simulationInitialized = false; // Reset on error
     requestAnimationFrame(render);
   }
-}
-
-// Add drawCars function (similar to your other draw functions)
-function drawCars(viewProjection) {
-  if (!buffers.car) {
-    console.error('Car buffer is missing');
-    return;
-  }
-
-  const cars = objects.filter(obj => obj.type === "car");
-
-  cars.forEach(car => {
-    drawObject(car, buffers.car, programInfo, viewProjection, objectColors.car);
-  });
-}
-
-
-function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
-  const world = twgl.m4.identity();
-  twgl.m4.translate(world, obj.position, world);
-  twgl.m4.rotateY(world, obj.rotation[1], world);
-  twgl.m4.scale(world, obj.scale, world);
-
-  const matrix = twgl.m4.multiply(viewProjection, world);
-  const worldInverseTranspose = twgl.m4.transpose(twgl.m4.inverse(world));
-
-  // Modify color for traffic lights based on state
-  let finalColor = color;
-  if (obj.type === 'trafficLight' && obj.state !== undefined) {
-    console.log('Traffic light state:', obj.state); // Verifica el estado del semáforo
-    finalColor = obj.state ? [0.0, 0.8, 0.0] : [0.8, 0.0, 0.0]; // Green when true, red when false
-  }
-
-  // Si el objeto es una fuente de luz (point light), asignamos la luz correspondiente
-  if (obj.isPointLight) {
-    // Cambiar para agregar un punto de luz (point light) que afecte a la escena
-    twgl.setUniforms(programInfo, {
-      u_pointLightPosition: obj.position,  // Posición del punto de luz
-      u_lightColor: finalColor,            // Color de la luz del semáforo
-    });
-  }
-
-  twgl.setUniforms(programInfo, {
-    u_worldViewProjection: matrix,
-    u_world: world,
-    u_worldInverseTranspose: worldInverseTranspose,
-    u_lightDirection: lightDirection,
-    u_lightColor: lightColor,
-    u_objectColor: finalColor,
-  });
-
-  twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
-  twgl.drawBufferInfo(gl, bufferInfo);
 }
 
 // Configura la interfaz gráfica
