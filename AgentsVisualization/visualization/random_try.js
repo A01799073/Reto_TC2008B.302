@@ -232,7 +232,7 @@ const lightDirection = [1, 1, 0]; // Dirección de la luz (simulando el sol)- am
 const lightColor = [1.2, 1.2, 0.8]; // Luz inicial /tono cálido
 
 const objectColors = {
-  road: [0.8, 0.8, 0.8],
+  road: [0.4, 0.4, 0.6],
   specialRoad: [1.0, 1.0, 0.0],
   building: [0.0, 0.0, 0.8],
   trafficLight: [0.8, 0.2, 0.2],
