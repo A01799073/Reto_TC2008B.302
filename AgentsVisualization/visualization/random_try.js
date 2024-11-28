@@ -583,7 +583,7 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
 // Configura la interfaz gráfica
 function setupUI() {
   const gui = new GUI();
-  const cameraFolder = gui.addFolder('Controles de CáFmara');
+  const cameraFolder = gui.addFolder('Controles de Cámara');
   gui.add(cameraPosition, 'x', -500, 500).name("Posición X");
   gui.add(cameraPosition, 'y', -500, 500).name("Posición Y");
   gui.add(cameraPosition, 'z', -500, 500).name("Posición Z");
