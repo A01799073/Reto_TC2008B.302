@@ -14,6 +14,7 @@ import json
 class CityModel(Model):
     def __init__(self, N):
         self.num_agents = N
+        self.current_agents = 0
         self.spawn_delay = 1 
         self.steps_since_spawn = 0
         self.traffic_lights = []
@@ -164,6 +165,7 @@ class CityModel(Model):
             car = Car(f"car_{i}", self)
             self.grid.place_agent(car, spawn_points[i % len(spawn_points)])
             self.schedule.add(car)
+            self.current_agents += 1
 
     def find_spawn_points(self):
         corner_checks = [
@@ -188,7 +190,7 @@ class CityModel(Model):
             agent for agent in self.schedule.agents if isinstance(agent, Car)
         ]
 
-        if len(existing_cars) >= self.num_agents:
+        if self.current_agents >= self.num_agents:
             return False
 
         # Find the highest existing car ID and add 1
@@ -206,6 +208,7 @@ class CityModel(Model):
                 if not any(isinstance(agent, Car) for agent in cell_contents):
                     self.grid.place_agent(new_car, spawn_point)
                     self.schedule.add(new_car)
+                    self.current_agents += 1
                     return True
 
         return False
@@ -268,9 +271,8 @@ class CityModel(Model):
     def initialize_data_collector(self):
         self.datacollector = DataCollector(
             model_reporters={
-                "Car_Count": lambda m: len(
-                    [agent for agent in m.schedule.agents if isinstance(agent, Car)]
-                ),
+                "Num_Agents": lambda m: m.num_agents,
+                "Current_Agents": lambda m: m.current_agents,
                 "Average_Speed": self.calculate_average_speed,
                 "Traffic_Density": self.calculate_traffic_density,
                 "Stopped_Cars": self.count_stopped_cars,
