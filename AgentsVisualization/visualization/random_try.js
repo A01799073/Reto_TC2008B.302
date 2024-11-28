@@ -120,54 +120,8 @@ const objectColors = {
   specialRoad: [1.0, 1.0, 0.0],
   building: [0.0, 0.0, 0.8],
   trafficLight: [1, 1, 1],
-  car: [1.0, 0.0, 0.0], // Bright red for better visibility
+  car: [0.0, 0.0, 0.0], // Bright red for better visibility
 };
-
-function createCubeData() {
-  return {
-    a_position: {
-      numComponents: 3,
-      data: [
-        // Front face
-        -2, -2, 2,
-        2, -2, 2,
-        2, 2, 2,
-        -2, 2, 2,
-        // Back face
-        -2, -2, -2,
-        -2, 2, -2,
-        2, 2, -2,
-        2, -2, -2,
-      ],
-    },
-    a_normal: {
-      numComponents: 3,
-      data: [
-        // Front
-        0, 0, 1,
-        0, 0, 1,
-        0, 0, 1,
-        0, 0, 1,
-        // Back
-        0, 0, -1,
-        0, 0, -1,
-        0, 0, -1,
-        0, 0, -1,
-      ],
-    },
-    indices: {
-      numComponents: 3,
-      data: [
-        0, 1, 2, 0, 2, 3,  // Front
-        4, 5, 6, 4, 6, 7,  // Back
-        0, 4, 7, 0, 7, 1,  // Top
-        2, 6, 5, 2, 5, 3,  // Bottom
-        0, 3, 5, 0, 5, 4,  // Right
-        1, 7, 6, 1, 6, 2,  // Left
-      ],
-    },
-  };
-}
 
 // Clase para representar objetos 3D
 class Object3D {
@@ -256,7 +210,11 @@ async function updateSimulation() {
 
     const data = await response.json();
 
-    cars = data.cars.map(car => new Object3D('car', car.id, [car.x, car.y, car.z]));
+    cars = data.cars.map(car => {
+      const carObject = new Object3D('car', car.id, [car.x, car.y, car.z]);
+      return carObject;
+    });
+    //cars = data.cars.map(car => new Object3D('car', car.id, [car.x, car.y, car.z]));
     trafficLights = data.traffic_lights.map(light => {
       const tLight = new Object3D('trafficLight', light.id, [light.x, light.y, light.z]);
       tLight.state = light.state;
@@ -384,7 +342,8 @@ async function main() {
   const specialRoadData = parseOBJ(specialModel);
   const trafficLightData = parseOBJ(trafficLightModel);
   const buildingData = parseOBJ(buildModel);
-  const carData = createCubeData();
+  //const carData = createCubeData();
+  const carData=parseOBJ(carModel)
 
   //Mapa
   processMap();
@@ -626,7 +585,7 @@ function setupUI() {
 
   lightFolder.addColor({ color: lightColor }, 'color').name('Color de Luz').onChange(value => {
     lightColor = value;
-    updateSunLight(); // Re-aplica los cambios
+    updateLighting(); // Re-aplica los cambios
   });
 
   cameraFolder.open();
