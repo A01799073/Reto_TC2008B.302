@@ -20,11 +20,11 @@ The following are installed when you use `npm i` inside of the **visualization**
 ## Instructions to run the local server and the application
 
 - Make sure that you have the dependencies installed.
-- Move to the `Server` folder.
+- Move to the Proyect folder 
 - Run the flask server:
 
 ```
-python agentsServer/agents_server.py
+python -m src.visualization.trafficServer                                                           ─╯
 ```
 
 - The script is listening to port 8585 (http://localhost:8585). **Double check that your server is launching on that port.**
