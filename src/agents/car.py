@@ -274,6 +274,7 @@ class Car(Agent):
             self.state = "arrived"
             self.model.grid.remove_agent(self)
             self.model.schedule.remove(self)
+            self.model.reached_destination += 1
 
             if (
                 len(

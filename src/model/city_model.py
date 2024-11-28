@@ -15,6 +15,7 @@ class CityModel(Model):
     def __init__(self, N):
         self.num_agents = N
         self.current_agents = 0
+        self.reached_destination = 0
         self.spawn_delay = 1 
         self.steps_since_spawn = 0
         self.traffic_lights = []
@@ -273,6 +274,7 @@ class CityModel(Model):
             model_reporters={
                 "Num_Agents": lambda m: m.num_agents,
                 "Current_Agents": lambda m: m.current_agents,
+                "Reached_Destination": lambda m: m.reached_destination,
                 "Average_Speed": self.calculate_average_speed,
                 "Traffic_Density": self.calculate_traffic_density,
                 "Stopped_Cars": self.count_stopped_cars,
@@ -304,6 +306,7 @@ class CityModel(Model):
     ###################
 
     def step(self):
+        """Mesa model step function"""
         self.datacollector.collect(self)
         self.steps_since_spawn += 1
         
