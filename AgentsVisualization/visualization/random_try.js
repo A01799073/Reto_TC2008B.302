@@ -223,8 +223,14 @@ let cameraTarget = { x: 80, y: -8000, z: -46 };     // Punto al que apunta la c�
 
 
 // Parámetros de iluminación direccional
-const lightDirection = [0, -1, -1]; // Dirección de la luz (simulando el sol)
-const lightColor = [1.5, 1.5, 1.5]; // Luz amarilla
+const lightDirection = [1, 1, 0]; // Dirección de la luz (simulando el sol)- amanecer
+/*
+  Si quieres simular un atardecer es = [-1,1,0]
+  Si quieres simular el medio día es = [0,-1,0]
+*/
+
+const lightColor = [1.2, 1.2, 0.8]; // Luz inicial /tono cálido
+
 const objectColors = {
   road: [0.8, 0.8, 0.8],
   specialRoad: [1.0, 1.0, 0.0],
@@ -287,6 +293,13 @@ function parseOBJ(objText) {
       data: indices,
     },
   };
+}
+// Función para actualizar los valores de la luz:
+function updateLighting() {
+  twgl.setUniforms(programInfo, {
+    u_lightDirection: lightDirection,
+    u_lightColor: lightColor,
+  });
 }
 
 // Procesa el mapa para crear los objetos
@@ -530,8 +543,21 @@ function setupUI() {
   gui.add(cameraTarget, 'y', -8000, 8000).name("Target Y");
   gui.add(cameraTarget, 'z', -500, 500).name("Target Z");
 
+  //Controles para la luz direccional:
+  // Nueva carpeta para la luz direccional
+  const lightFolder = gui.addFolder('Lighting - Direccional');
+  lightFolder.add(lightDirection, '0', -1, 1).name("Dirección X");
+  lightFolder.add(lightDirection, '1', -1, 1).name("Dirección Y");
+  lightFolder.add(lightDirection, '2', -1, 1).name("Dirección Z");
+
+  lightFolder.addColor({ color: lightColor }, 'color').name('Color de Luz').onChange(value => {
+    lightColor = value;
+    updateLighting(); // Re-aplica los cambios
+  });
+
   cameraFolder.open();
-  targetFolder.open()
+  targetFolder.open();
+  lightFolder.open();
 }
 
 // Inicia la aplicación
