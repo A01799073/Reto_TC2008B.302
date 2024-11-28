@@ -28,10 +28,13 @@ uniform mat4 u_world;
 uniform mat4 u_worldInverseTranspose;
 
 out vec3 v_normal;
+out vec3 v_position;
 
 void main() {
     gl_Position = u_worldViewProjection * a_position;
     v_normal = mat3(u_world) * a_normal;
+    v_position = (u_world * a_position).xyz;  // Set the position in world space
+
 }
 `;
 
@@ -40,17 +43,24 @@ const fsGLSL = `#version 300 es
 precision highp float;
 
 in vec3 v_normal;
+in vec3 v_position;  // Nueva variable para la posición del fragmento
+
 
 uniform vec3 u_lightDirection; // Dirección de la luz
 uniform vec3 u_lightColor;     // Color de la luz
 uniform vec3 u_objectColor;    // Color base del objeto
 
+//Luces para semaforos
+uniform vec3 u_pointLightPosition; // Posición del punto de luz
+uniform vec3 u_pointLightColor;   // Color del punto de luz
+
 out vec4 outColor;
 
 void main() {
+
+  //Luces direccionales
     vec3 normal = normalize(v_normal);
     vec3 lightDir = normalize(u_lightDirection); // Usa la dirección de luz uniforme
-
 
      // Cálculo de iluminación difusa
     float diff = max(dot(normal, lightDir), 0.0);
@@ -61,8 +71,23 @@ void main() {
     // Mezcla con un término ambiental para iluminar sombras
     vec3 ambient = 0.2 * u_objectColor;
 
-    outColor = vec4(diffuse + ambient, 1.0); // Combina difusión y luz ambiental
+    vec3 totalLighting = ambient + diffuse;
 
+    //outColor = vec4(diffuse + ambient, 1.0); // Combina difusión y luz ambiental
+
+    // Calcular la contribución de la luz puntual
+    vec3 lightToFrag = u_pointLightPosition - v_position;
+    float distance = length(lightToFrag);
+    float attenuation = 1.0 / (distance * distance);  // Atenuación por distancia
+    vec3 pointLightColor = attenuation * u_pointLightColor;
+
+    // Cálculo de la luz puntual
+    vec3 pointLightDiffuse = max(dot(normal, normalize(lightToFrag)), 0.0) * pointLightColor * u_objectColor;
+    
+    // Combinación de luz ambiental, difusa y puntual
+    totalLighting += pointLightDiffuse;
+
+    outColor = vec4(totalLighting, 1.0);
 }
 `;
 
@@ -114,13 +139,14 @@ function createCubeData() {
 
 // Clase para representar objetos 3D
 class Object3D {
-  constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+  constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], isPointLight = false) {
     this.type = type; // Tipo de objeto (carretera, semáforo, etc.)
     this.id = id; // Identificador único
     this.position = position;
     this.rotation = rotation;
     this.scale = scale;
     this.matrix = twgl.m4.identity();
+    this.isPointLight = isPointLight; // Nueva propiedad para las luces de semáforo
   }
 }
 
@@ -128,7 +154,7 @@ let simulationInitialized = false;
 // Initialize the simulation
 async function initSimulation(nAgents) {
   try {
-    console.log('Initializing simulation with', nAgents, 'agents');
+    //console.log('Initializing simulation with', nAgents, 'agents');
     const response = await fetch(`${agent_server_uri}/init`, {
       method: 'POST',
       headers: {
@@ -138,7 +164,7 @@ async function initSimulation(nAgents) {
     });
     if (!response.ok) throw new Error('Failed to initialize simulation');
     simulationInitialized = true;
-    console.log('Simulation initialized successfully');
+    //console.log('Simulation initialized successfully');
     return await response.json();
   } catch (error) {
     console.error('Error initializing simulation:', error);
@@ -149,7 +175,7 @@ async function initSimulation(nAgents) {
 // Add check in stepSimulation
 async function stepSimulation() {
   if (!simulationInitialized) {
-    console.log('Simulation not initialized, initializing now...');
+    //console.log('Simulation not initialized, initializing now...');
     await initSimulation(100);
     return;
   }
@@ -171,7 +197,7 @@ async function stepSimulation() {
 // Add check in getState
 async function getState() {
   if (!simulationInitialized) {
-    console.log('Simulation not initialized, initializing now...');
+    //console.log('Simulation not initialized, initializing now...');
     await initSimulation(100);
     return;
   }
@@ -201,6 +227,7 @@ async function updateSimulation() {
     trafficLights = data.traffic_lights.map(light => {
       const tLight = new Object3D('trafficLight', light.id, [light.x, light.y, light.z]);
       tLight.state = light.state;
+      console.log("Traffic Lights State:", trafficLights);
       return tLight;
     });
 
@@ -229,13 +256,13 @@ const lightDirection = [1, 1, 0]; // Dirección de la luz (simulando el sol)- am
   Si quieres simular el medio día es = [0,-1,0]
 */
 
-const lightColor = [1.2, 1.2, 0.8]; // Luz inicial /tono cálido
+let lightColor = [1.0, 1.0, 1.0]; // Luz inicial /tono cálido
 
 const objectColors = {
   road: [0.4, 0.4, 0.6],
   specialRoad: [1.0, 1.0, 0.0],
   building: [0.0, 0.0, 0.8],
-  trafficLight: [0.8, 0.2, 0.2],
+  trafficLight: [1, 1, 1],
   car: [1.0, 0.0, 0.0], // Bright red for better visibility
 };
 
@@ -299,6 +326,20 @@ function updateLighting() {
   twgl.setUniforms(programInfo, {
     u_lightDirection: lightDirection,
     u_lightColor: lightColor,
+  });
+}
+
+function updateTrafficLights() {
+  // Actualiza la luz puntual para cada semáforo
+  trafficLights.forEach(tLight => {
+      console.log("Updating point light color for traffic light:", tLight.state ? [0.0, 1.0, 0.0] : [1.0, 0.0, 0.0]);
+      if (tLight.isPointLight) {
+          const pointLightColor = tLight.state ? [0.0, 1.0, 0.0] : [1.0, 0.0, 0.0];  // Verde o Rojo
+          twgl.setUniforms(programInfo, {
+              u_pointLightPosition: tLight.position,  // Posición de la luz puntual
+              u_pointLightColor: pointLightColor      // Color de la luz puntual
+          });
+      }
   });
 }
 
@@ -385,7 +426,10 @@ function drawSpecialRoads(viewProjection) {
 function drawTrafficLights(viewProjection) {
   const lightBuffer = buffers.trafficLight;
   const lights = objects.filter(obj => obj.type === "trafficLight");
-  lights.forEach(light => drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight));
+  lights.forEach(light => {
+    console.log('Traffic light state:', light.state); // Verifica el estado del semáforo
+    drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight);
+  });
 }
 
 // Función para dibujar edificios
@@ -395,18 +439,10 @@ function drawBuildings(viewProjection) {
   buildings.forEach(building => drawObject(building, buildingBuffer, programInfo, viewProjection, objectColors.building));
 }
 
-/*
-//función para dibujar carros
-function drawCars(viewProjection) {
-    const carBuffer = buffers.trafficLight;
-    const cars = objects.filter(obj => obj.type === "car");
-    lights.forEach(light => drawObject(car, carBufferBuffer, programInfo, viewProjection));
-*/
-
 async function render() {
   try {
     if (!simulationInitialized) {
-      console.log('Simulation not initialized, retrying...');
+      //console.log('Simulation not initialized, retrying...');
       await initSimulation(100);
       if (!simulationInitialized) {
         requestAnimationFrame(render);
@@ -418,6 +454,11 @@ async function render() {
     const state = await getState();
 
     if (state && state.cars && state.traffic_lights) {
+      // Verificar el estado de los semáforos en cada ciclo de renderizado
+      state.traffic_lights.forEach(lightData => {
+        //console.log('Traffic light state in render loop:', lightData.state);
+      });
+
       // Remove all existing cars
       const nonCarObjects = objects.filter(obj => obj.type !== 'car');
       objects.length = 0;
@@ -442,8 +483,8 @@ async function render() {
           [0.5, 0.5, 0.5]  // Made cars smaller
         );
         objects.push(car);
-        console.log('Raw car data:', carData);
-        console.log('WebGL position:', webGLPosition);
+        //console.log('Raw car data:', carData);
+        //console.log('WebGL position:', webGLPosition);
       });
 
       // Regular WebGL rendering
@@ -513,7 +554,17 @@ function drawObject(obj, bufferInfo, programInfo, viewProjection, color) {
   // Modify color for traffic lights based on state
   let finalColor = color;
   if (obj.type === 'trafficLight' && obj.state !== undefined) {
+    console.log('Traffic light state:', obj.state); // Verifica el estado del semáforo
     finalColor = obj.state ? [0.0, 0.8, 0.0] : [0.8, 0.0, 0.0]; // Green when true, red when false
+  }
+
+  // Si el objeto es una fuente de luz (point light), asignamos la luz correspondiente
+  if (obj.isPointLight) {
+    // Cambiar para agregar un punto de luz (point light) que afecte a la escena
+    twgl.setUniforms(programInfo, {
+      u_pointLightPosition: obj.position,  // Posición del punto de luz
+      u_lightColor: finalColor,            // Color de la luz del semáforo
+    });
   }
 
   twgl.setUniforms(programInfo, {
@@ -552,7 +603,7 @@ function setupUI() {
 
   lightFolder.addColor({ color: lightColor }, 'color').name('Color de Luz').onChange(value => {
     lightColor = value;
-    updateLighting(); // Re-aplica los cambios
+    updateSunLight(); // Re-aplica los cambios
   });
 
   cameraFolder.open();
