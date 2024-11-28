@@ -82,7 +82,7 @@ def create_server():
     )
 
     model_params = {
-        "N": Slider("Number of Cars", 1, 1, 50, 1),
+        "N": Slider("Number of Cars", 100, 1, 150, 1),
     }
 
     server = ModularServer(

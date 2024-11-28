@@ -14,6 +14,8 @@ import json
 class CityModel(Model):
     def __init__(self, N):
         self.num_agents = N
+        self.spawn_delay = 1 
+        self.steps_since_spawn = 0
         self.traffic_lights = []
         self.initialize_model()
         self.initialize_data_collector()
@@ -152,26 +154,16 @@ class CityModel(Model):
     ###################
 
     def spawn_initial_cars(self):
-        """Spawn initial cars at valid spawn points with unique IDs"""
         spawn_points = self.find_spawn_points()
         if not spawn_points:
             print("Warning: No valid corner spawn points found")
             return
 
-        cars_per_spawn = self.num_agents // len(spawn_points)
-        extra_cars = self.num_agents % len(spawn_points)
-
-        # Keep track of the global car ID
-        car_id = 0
-
-        for spawn_point_idx, spawn_point in enumerate(spawn_points):
-            cars_to_spawn = cars_per_spawn + (1 if extra_cars > spawn_point_idx else 0)
-            for _ in range(cars_to_spawn):
-                # Use the global car_id instead of loop index
-                car = Car(f"car_{car_id}", self)
-                self.grid.place_agent(car, spawn_point)
-                self.schedule.add(car)
-                car_id += 1  # Increment the global car ID
+        initial_cars = min(len(spawn_points), self.num_agents)
+        for i in range(initial_cars):
+            car = Car(f"car_{i}", self)
+            self.grid.place_agent(car, spawn_points[i % len(spawn_points)])
+            self.schedule.add(car)
 
     def find_spawn_points(self):
         corner_checks = [
@@ -311,14 +303,13 @@ class CityModel(Model):
 
     def step(self):
         self.datacollector.collect(self)
-        current_cars = len(
-            [agent for agent in self.schedule.agents if isinstance(agent, Car)]
-        )
-
-        cars_to_add = min(self.num_agents - current_cars, 3)
-        for _ in range(cars_to_add):
-            self.add_new_car()
+        self.steps_since_spawn += 1
+        
+        if self.steps_since_spawn >= self.spawn_delay:
+            current_cars = len([agent for agent in self.schedule.agents if isinstance(agent, Car)])
+            cars_to_add = min(self.num_agents - current_cars, 3)
+            for _ in range(cars_to_add):
+                self.add_new_car()
+            self.steps_since_spawn = 0
 
         self.schedule.step()
-
-    # END MODEL STEPPING
