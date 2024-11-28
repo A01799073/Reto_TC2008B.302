@@ -139,7 +139,7 @@ function createCubeData() {
 
 // Clase para representar objetos 3D
 class Object3D {
-  constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], isPointLight = false) {
+  constructor(type, id, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], isPointLight = false, state=false) {
     this.type = type; // Tipo de objeto (carretera, semáforo, etc.)
     this.id = id; // Identificador único
     this.position = position;
@@ -147,6 +147,7 @@ class Object3D {
     this.scale = scale;
     this.matrix = twgl.m4.identity();
     this.isPointLight = isPointLight; // Nueva propiedad para las luces de semáforo
+    this.state = state;
   }
 }
 
@@ -359,8 +360,8 @@ function processMap() {
         objects.push(new Object3D('specialRoad', `specialRoad-${row}-${col}`, [x, 0, z]));
       } else if (char === '#') {
         objects.push(new Object3D('building', `building-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.75, 1, 0.75]));
-      } else if (char === 'S' || char === 's') {
-        objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.7, 0.5, 0.7]));
+      // } else if (char === 'S' || char === 's') {
+      //   objects.push(new Object3D('trafficLight', `light-${row}-${col}`, [x, 0, z], [0, 0, 0], [0.7, 0.5, 0.7]));
       }
     });
   });
@@ -426,6 +427,7 @@ function drawSpecialRoads(viewProjection) {
 function drawTrafficLights(viewProjection) {
   const lightBuffer = buffers.trafficLight;
   const lights = objects.filter(obj => obj.type === "trafficLight");
+  console.log(lights)
   lights.forEach(light => {
     console.log('Traffic light state:', light.state); // Verifica el estado del semáforo
     drawObject(light, lightBuffer, programInfo, viewProjection, objectColors.trafficLight);
@@ -456,7 +458,25 @@ async function render() {
     if (state && state.cars && state.traffic_lights) {
       // Verificar el estado de los semáforos en cada ciclo de renderizado
       state.traffic_lights.forEach(lightData => {
-        //console.log('Traffic light state in render loop:', lightData.state);
+        // console.log('Traffic light state in render loop:', lightData.state);
+        const webGLPosition = [
+          (lightData.x * 5),
+          1,
+          (29 - lightData.z) * 5  // Invert and offset Z coordinate
+        ];
+
+        const light = new Object3D(
+          "trafficLight",
+          lightData.id,
+          webGLPosition,
+          [0, 0, 0],
+          [0.5, 0.5, 0.5],
+          lightData.state
+          // Made cars smaller
+        );
+        objects.push(light);
+        
+        
       });
 
       // Remove all existing cars
