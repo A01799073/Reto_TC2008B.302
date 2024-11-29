@@ -19,10 +19,6 @@ Here's the updated README.md:
 
 ![Demostración del Proyecto](Demostration.gif)
 
-## 📄 Reporte Completo
-
-El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdf)
-
 ## 📊 Diagramas
 
 ### Diagrama de Clases
@@ -129,7 +125,9 @@ sequenceDiagram
     end
 ```
 
+## 📄 Reporte Completo
 
+El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdf)
 ## 📋 Descripción del Proyecto
 
 Sistema de simulación multiagente enfocado en resolver problemas de movilidad urbana en México. El proyecto implementa estrategias para reducir la congestión vehicular mediante:
