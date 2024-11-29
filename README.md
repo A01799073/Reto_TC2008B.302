@@ -12,7 +12,8 @@ Here's the updated README.md:
 6. [Funcionalidades](#-funcionalidades)
 7. [Tecnologías](#️-tecnologías-y-herramientas)
 8. [Instalación](#-instalación-y-uso)
-9. [Métricas](#-métricas-y-análisis)
+9. [métricas](#-métricas-y-análisis)
+10. [Estructura de Archivos](#📁-estructura-de-archivos)
 
 ## 🎥 Demo del Proyecto
 
@@ -236,6 +237,57 @@ npx vite
 - Niveles de congestión en intersecciones
 - Eficiencia de rutas y llegadas exitosas
 - Comportamiento de semáforos
+
+## 📁 Estructura de Archivos
+
+```
+proyecto/
+├── AgentsVisualization/
+│   ├── Server/
+│   │   └── agentsServer/
+│   │       └── agents_server.py
+│   └── visualization/
+│       ├── 3D_models/
+│       │   ├── Auto/
+│       │   └── Simple_Funcionales/
+│       ├── index.html
+│       ├── package.json
+│       ├── random_try.js
+│       └── styles.css
+├── city_files/
+│   ├── 2022_base.txt
+│   └── mapDictionary.json
+├── src/
+│   ├── agents/
+│   │   ├── car.py
+│   │   ├── destination.py
+│   │   ├── obstacle.py
+│   │   ├── road.py
+│   │   └── traffic_light.py
+│   ├── model/
+│   │   └── city_model.py
+│   └── visualization/
+│       ├── server.py
+│       └── trafficServer.py
+├── static/
+│   └── city_files/
+├── Demostration.gif
+├── DIAGRAM.md
+├── main.py
+├── README.md
+├── test_setup.py
+└── UK_Roundabout_8_Cars.gif
+```
+
+Esta estructura muestra la organización del código fuente, donde:
+
+- `AgentsVisualization/`: Contiene el código de la interfaz visual y servidor
+- `src/`: Contiene el código principal de la simulación
+  - `agents/`: Implementación de los diferentes agentes
+  - `model/`: Modelo de la ciudad y lógica central
+  - `visualization/`: Servidores y configuración visual
+- `city_files/`: Archivos de configuración del mapa
+- Archivos de documentación y recursos en la raíz
 
 ## 📝 Licencia
 
