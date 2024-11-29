@@ -130,7 +130,7 @@ sequenceDiagram
 
 ## 📄 Reporte Completo
 
-El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdf)
+El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdfEvidencia 1. Reporte del reto.pdf)
 
 ## 📋 Descripción del Proyecto
 
