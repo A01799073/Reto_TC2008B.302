@@ -16,7 +16,7 @@ class CityModel(Model):
         self.num_agents = N
         self.current_agents = 0
         self.reached_destination = 0
-        self.spawn_delay = 1 
+        self.spawn_delay = 10
         self.steps_since_spawn = 0
         self.traffic_lights = []
         self.initialize_model()
@@ -309,9 +309,11 @@ class CityModel(Model):
         """Mesa model step function"""
         self.datacollector.collect(self)
         self.steps_since_spawn += 1
-        
+
         if self.steps_since_spawn >= self.spawn_delay:
-            current_cars = len([agent for agent in self.schedule.agents if isinstance(agent, Car)])
+            current_cars = len(
+                [agent for agent in self.schedule.agents if isinstance(agent, Car)]
+            )
             cars_to_add = min(self.num_agents - current_cars, 3)
             for _ in range(cars_to_add):
                 self.add_new_car()

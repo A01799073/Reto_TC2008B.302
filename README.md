@@ -16,7 +16,11 @@ Here's the updated README.md:
 
 ## 🎥 Demo del Proyecto
 
-[Link al video de demostración]
+![Demostración del Proyecto](Demostration.gif)
+
+## 📄 Reporte Completo
+
+El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdf)
 
 ## 📊 Diagramas
 
@@ -124,9 +128,9 @@ sequenceDiagram
     end
 ```
 
-
 ## 📄 Reporte Completo
-El reporte detallado del proyecto se puede encontrar en [Reporte Final]()
+
+El reporte detallado del proyecto se puede encontrar en [Informe Final](Evidencias/Evidencia%201.%20Reporte%20del%20reto.pdf)
 
 ## 📋 Descripción del Proyecto
 
